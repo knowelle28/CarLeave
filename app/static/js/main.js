@@ -1,19 +1,33 @@
-document.querySelectorAll('.flash').forEach(el => {
-  setTimeout(() => { el.style.transition='opacity 0.4s'; el.style.opacity='0'; setTimeout(()=>el.remove(),400); }, 5000);
-});
-const departureInput = document.getElementById('departure_datetime');
-const returnInput = document.getElementById('return_datetime');
-if (departureInput && !departureInput.value) {
-  const now = new Date(); now.setMinutes(0,0,0); now.setHours(now.getHours()+1);
-  const iso = now.toISOString().slice(0,16);
-  departureInput.value = iso; departureInput.min = iso;
-}
-if (departureInput && returnInput) {
-  departureInput.addEventListener('change', () => {
-    if (returnInput.value && returnInput.value <= departureInput.value) {
-      const d = new Date(departureInput.value); d.setHours(d.getHours()+1);
-      returnInput.value = d.toISOString().slice(0,16);
+// Auto-default all datetime-local and date inputs to current time
+document.addEventListener('DOMContentLoaded', function() {
+  function getNow() {
+    const now = new Date();
+    now.setSeconds(0, 0);
+    const pad = function(n) { return String(n).padStart(2, '0'); };
+    return now.getFullYear() + '-' +
+           pad(now.getMonth() + 1) + '-' +
+           pad(now.getDate()) + 'T' +
+           pad(now.getHours()) + ':' +
+           pad(now.getMinutes());
+  }
+
+  function getToday() {
+    const now = new Date();
+    const pad = function(n) { return String(n).padStart(2, '0'); };
+    return now.getFullYear() + '-' +
+           pad(now.getMonth() + 1) + '-' +
+           pad(now.getDate());
+  }
+
+  document.querySelectorAll('input[type="datetime-local"]').forEach(function(el) {
+    if (!el.value) {
+      el.value = getNow();
     }
-    returnInput.min = departureInput.value;
   });
-}
+
+  document.querySelectorAll('input[type="date"]').forEach(function(el) {
+    if (!el.value) {
+      el.value = getToday();
+    }
+  });
+});
