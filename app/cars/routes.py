@@ -103,6 +103,7 @@ def dashboard():
 @cars_bp.route("/cars/new", methods=["GET", "POST"])
 @login_required
 def new_booking():
+    from datetime import date
     user = session["user"]
     managers = get_managers()
     all_cars = Car.query.filter_by(is_active=True).all()
@@ -118,21 +119,24 @@ def new_booking():
                 "error"
             )
             return render_template("cars/booking_form.html",
-                                   user=user, managers=managers,
-                                   all_cars=all_cars, car_states=car_states)
+                           user=user, managers=managers,
+                           all_cars=all_cars, car_states=car_states,
+                           today=date.today())
 
         car_id = request.form.get("car_id", "").strip()
         if not car_id:
             flash("Please select a vehicle.", "error")
             return render_template("cars/booking_form.html",
-                                   user=user, managers=managers,
-                                   all_cars=all_cars, car_states=car_states)
+                           user=user, managers=managers,
+                           all_cars=all_cars, car_states=car_states,
+                           today=date.today())
 
         if car_states.get(int(car_id), {}).get("status") == "borrowed":
             flash("That vehicle is currently out. Please choose another.", "error")
             return render_template("cars/booking_form.html",
-                                   user=user, managers=managers,
-                                   all_cars=all_cars, car_states=car_states)
+                           user=user, managers=managers,
+                           all_cars=all_cars, car_states=car_states,
+                           today=date.today())
 
         lang = request.form.get("active_language", "en")
         booking = CarBooking(
@@ -165,7 +169,8 @@ def new_booking():
 
     return render_template("cars/booking_form.html",
                            user=user, managers=managers,
-                           all_cars=all_cars, car_states=car_states)
+                           all_cars=all_cars, car_states=car_states,
+                           today=date.today())
 
 
 @cars_bp.route("/cars/booking/<int:id>")
