@@ -35,10 +35,6 @@ def admin_required(f):
 
 def _ar():
     from flask import request as _req
-    import sys
-    lang_from_form = _req.form.get('ui_lang', 'NOT_IN_FORM')
-    lang_from_session = session.get('lang', 'NOT_IN_SESSION')
-    print(f"DEBUG _ar(): form ui_lang={lang_from_form}, session lang={lang_from_session}", file=sys.stderr)
     return _req.form.get('ui_lang', session.get('lang', 'en')) == 'ar'
 
 def _parse_date(val):
