@@ -132,6 +132,17 @@
         </label>
         <input class="form-input" type="date" name="last_minor_maintenance"
                value="{{ car.last_minor_maintenance.strftime('%Y-%m-%d') if car and car.last_minor_maintenance else '' }}">
+
+    <div class="form-group">
+      <label class="form-label">
+        {{ 'تاريخ انتهاء التسجيل' if ar else 'Registration Expiry Date' }}
+      </label>
+      <input class="form-input" type="date" name="registration_expiry"
+             value="{{ car.registration_expiry.strftime('%Y-%m-%d') if car and car.registration_expiry else '' }}">
+      <small style="color:var(--text-muted);font-size:0.78rem;">
+        {{ 'سيظهر تحذير للمستخدمين إذا كان التسجيل على وشك الانتهاء خلال 30 يومًا.' if ar else 'A warning will appear to users if registration expires within 30 days.' }}
+      </small>
+    </div>
         <small style="color:var(--text-muted);font-size:0.78rem;">
           {{ 'مثال: تغيير الزيت، الفلاتر' if ar else 'e.g. oil change, filters' }}
         </small>
