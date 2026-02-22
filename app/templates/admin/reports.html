@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+{% block title %}{{ 'تقارير المغادرة — LeavePass' if session.get('lang') == 'ar' else 'Leave Reports — LeavePass' }}{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'تقارير المغادرة' if ar else 'Leave Reports' }}</h1>
+    <p class="page-subtitle">{{ 'تقرير مفصل حسب الموظف أو القسم أو المدير' if ar else 'Detailed report by employee, department, or manager' }}</p>
+  </div>
+  {% if records %}
+  <a href="{{ url_for('main.admin_leave_reports_print',
+       type=report_type, selected_id=selected_id,
+       date_from=date_from, date_to=date_to, status=status_filter) }}"
+     target="_blank" class="btn btn-ghost">
+    🖨 {{ 'طباعة' if ar else 'Print' }}
+  </a>
+  {% endif %}
+</div>
+
+<!-- Filter form -->
+<div class="form-card report-filter-card no-print">
+  <form method="GET" action="{{ url_for('main.admin_leave_reports') }}" id="reportForm">
+
+    <!-- Report type toggle -->
+    <div class="form-group">
+      <label class="form-label">{{ 'نوع التقرير' if ar else 'Report Type' }}</label>
+      <div class="report-type-toggle">
+        <button type="button"
+                class="report-type-btn {% if report_type == 'employee' %}active{% endif %}"
+                onclick="setReportType('employee')">
+          👤 {{ 'حسب الموظف' if ar else 'By Employee' }}
+        </button>
+        <button type="button"
+                class="report-type-btn {% if report_type == 'department' %}active{% endif %}"
+                onclick="setReportType('department')">
+          🏢 {{ 'حسب القسم' if ar else 'By Department' }}
+        </button>
+        <button type="button"
+                class="report-type-btn {% if report_type == 'manager' %}active{% endif %}"
+                onclick="setReportType('manager')">
+          👔 {{ 'حسب المدير' if ar else 'By Manager' }}
+        </button>
+      </div>
+      <input type="hidden" name="type" id="report_type_input" value="{{ report_type }}">
+    </div>
+
+    <div class="report-filter-grid">
+
+      <!-- Employee selector -->
+      <div class="form-group" id="employee-selector-wrap"
+           style="display:{{ 'block' if report_type == 'employee' else 'none' }};">
+        <label class="form-label">{{ 'الموظف' if ar else 'Employee' }}</label>
+        <select class="form-input form-select" name="selected_id" id="employee_select">
+          <option value="all" {% if selected_id == 'all' %}selected{% endif %}>
+            — {{ 'كل الموظفين' if ar else 'All Employees' }} —
+          </option>
+          {% for u in employee_rows %}
+          <option value="{{ u.employee_username }}"
+            {% if report_type == 'employee' and selected_id == u.employee_username %}selected{% endif %}>
+            {{ u.employee_name_ar if ar and u.employee_name_ar else u.employee_name }}
+            {% if u.employee_department %} — {{ u.employee_department }}{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Department selector -->
+      <div class="form-group" id="department-selector-wrap"
+           style="display:{{ 'block' if report_type == 'department' else 'none' }};">
+        <label class="form-label">{{ 'القسم' if ar else 'Department' }}</label>
+        <select class="form-input form-select" name="selected_id" id="department_select">
+          <option value="all" {% if selected_id == 'all' %}selected{% endif %}>
+            — {{ 'كل الأقسام' if ar else 'All Departments' }} —
+          </option>
+          {% for d in department_rows %}
+          <option value="{{ d.employee_department }}"
+            {% if report_type == 'department' and selected_id == d.employee_department %}selected{% endif %}>
+            {{ d.employee_department_ar if ar and d.employee_department_ar else d.employee_department }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Manager selector -->
+      <div class="form-group" id="manager-selector-wrap"
+           style="display:{{ 'block' if report_type == 'manager' else 'none' }};">
+        <label class="form-label">{{ 'المدير' if ar else 'Manager' }}</label>
+        <select class="form-input form-select" name="selected_id" id="manager_select">
+          <option value="all" {% if selected_id == 'all' %}selected{% endif %}>
+            — {{ 'كل المدراء' if ar else 'All Managers' }} —
+          </option>
+          {% for m in manager_rows %}
+          <option value="{{ m.manager_name }}"
+            {% if report_type == 'manager' and selected_id == m.manager_name %}selected{% endif %}>
+            {{ m.manager_name_ar if ar and m.manager_name_ar else m.manager_name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Date from -->
+      <div class="form-group">
+        <label class="form-label">
+          {{ 'من تاريخ' if ar else 'From Date' }}
+          <small style="color:var(--text-faint);font-weight:400;">
+            ({{ 'اتركه فارغاً للبداية' if ar else 'leave blank for earliest' }})
+          </small>
+        </label>
+        <input class="form-input" type="date" name="date_from" value="{{ date_from }}">
+      </div>
+
+      <!-- Date to -->
+      <div class="form-group">
+        <label class="form-label">
+          {{ 'إلى تاريخ' if ar else 'To Date' }}
+          <small style="color:var(--text-faint);font-weight:400;">
+            ({{ 'اتركه فارغاً لليوم' if ar else 'leave blank for today' }})
+          </small>
+        </label>
+        <input class="form-input" type="date" name="date_to" value="{{ date_to }}">
+      </div>
+
+      <!-- Status filter -->
+      <div class="form-group">
+        <label class="form-label">{{ 'الحالة' if ar else 'Status' }}</label>
+        <select class="form-input form-select" name="status">
+          <option value="all" {% if status_filter == 'all' %}selected{% endif %}>
+            — {{ 'كل الحالات' if ar else 'All Statuses' }} —
+          </option>
+          <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>
+            {{ 'مسودة' if ar else 'Draft' }}
+          </option>
+          <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>
+            {{ 'معلق' if ar else 'Pending' }}
+          </option>
+          <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>
+            {{ 'معتمد' if ar else 'Approved' }}
+          </option>
+          <option value="archived" {% if status_filter == 'archived' %}selected{% endif %}>
+            {{ 'مؤرشف' if ar else 'Archived' }}
+          </option>
+        </select>
+      </div>
+
+    </div>
+
+    <div class="form-actions" style="margin-top:1rem;">
+      <button type="submit" class="btn btn-primary">
+        🔍 {{ 'إنشاء التقرير' if ar else 'Generate Report' }}
+      </button>
+      <a href="{{ url_for('main.admin_leave_reports') }}" class="btn btn-ghost">
+        ✕ {{ 'مسح' if ar else 'Clear' }}
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Results -->
+<div class="report-results">
+
+  <!-- Summary header -->
+  <div class="report-header-bar">
+    <div class="report-header-title">
+      {% if report_type == 'employee' %}👤
+      {% elif report_type == 'department' %}🏢
+      {% else %}👔{% endif %}
+      {{ report_title }}
+      {% if date_from or date_to %}
+      <span style="font-weight:400;font-size:0.85rem;color:var(--text-muted);margin-left:0.75rem;">
+        {{ date_from or '…' }} → {{ date_to or 'today' }}
+      </span>
+      {% endif %}
+    </div>
+    <div class="report-header-meta">
+      {{ records|length }} {{ 'سجل' if ar else 'record(s)' }}
+    </div>
+  </div>
+
+  <!-- Stats strip -->
+  <div class="report-stats">
+    <div class="report-stat">
+      <span class="report-stat-val">{{ stats.total }}</span>
+      <span class="report-stat-label">{{ 'إجمالي' if ar else 'Total' }}</span>
+    </div>
+    <div class="report-stat">
+      <span class="report-stat-val">{{ stats.approved }}</span>
+      <span class="report-stat-label">{{ 'معتمد' if ar else 'Approved' }}</span>
+    </div>
+    <div class="report-stat">
+      <span class="report-stat-val">{{ stats.pending }}</span>
+      <span class="report-stat-label">{{ 'معلق' if ar else 'Pending' }}</span>
+    </div>
+    <div class="report-stat">
+      <span class="report-stat-val">{{ stats.draft }}</span>
+      <span class="report-stat-label">{{ 'مسودة' if ar else 'Draft' }}</span>
+    </div>
+    <div class="report-stat">
+      <span class="report-stat-val">{{ stats.archived }}</span>
+      <span class="report-stat-label">{{ 'مؤرشف' if ar else 'Archived' }}</span>
+    </div>
+    <div class="report-stat">
+      <span class="report-stat-val">{{ stats.avg_duration }}</span>
+      <span class="report-stat-label">{{ 'متوسط الأيام' if ar else 'Avg. Days' }}</span>
+    </div>
+  </div>
+
+  {% if records %}
+  <div class="booking-cards" style="margin-top:1.25rem;">
+    {% for r in records %}
+    <div class="booking-admin-card status-border-{{ r.status }}">
+
+      <div class="bac-header">
+        <div class="bac-left">
+          <span class="mono bac-number">{{ r.request_number }}</span>
+          <span class="status-badge {{ r.status_badge_class() }}">
+            {% if r.status == 'draft' %}{{ 'مسودة' if ar else 'Draft' }}
+            {% elif r.status == 'pending' %}{{ 'معلق' if ar else 'Pending' }}
+            {% elif r.status == 'approved' %}{{ 'معتمد' if ar else 'Approved' }}
+            {% elif r.status == 'archived' %}{{ 'مؤرشف' if ar else 'Archived' }}
+            {% else %}{{ r.status }}{% endif %}
+          </span>
+        </div>
+        <div class="bac-right">{{ r.departure_datetime.strftime('%d %b %Y') }}</div>
+      </div>
+
+      <div class="bac-body">
+
+        {% if report_type != 'employee' or selected_id == 'all' %}
+        <div class="bac-section">
+          <div class="bac-section-label">{{ 'الموظف' if ar else 'Employee' }}</div>
+          <div class="bac-section-value">
+            {{ r.employee_name_ar if ar and r.employee_name_ar else r.employee_name }}
+            <span style="color:var(--text-muted);font-size:0.8rem;margin-left:0.4rem;">
+              {{ r.employee_number or '' }}
+            </span>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if report_type != 'department' or selected_id == 'all' %}
+        <div class="bac-section">
+          <div class="bac-section-label">{{ 'القسم' if ar else 'Department' }}</div>
+          <div class="bac-section-value">
+            {{ r.employee_department_ar if ar and r.employee_department_ar else r.employee_department or '—' }}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if report_type != 'manager' or selected_id == 'all' %}
+        <div class="bac-section">
+          <div class="bac-section-label">{{ 'المدير' if ar else 'Manager' }}</div>
+          <div class="bac-section-value">
+            {{ r.manager_name_ar if ar and r.manager_name_ar else r.manager_name or '—' }}
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="bac-section">
+          <div class="bac-section-label">{{ 'الوجهة' if ar else 'Destination' }}</div>
+          <div class="bac-section-value">
+            {{ (r.destination_ar if ar and r.destination_ar else r.destination) or '—' }}
+          </div>
+        </div>
+
+        <div class="bac-section">
+          <div class="bac-section-label">{{ 'السبب' if ar else 'Reason' }}</div>
+          <div class="bac-section-value" style="color:var(--text-muted);font-size:0.85rem;">
+            {% set reason_text = r.reason_ar if ar and r.reason_ar else r.reason %}
+            {{ reason_text[:120] }}{% if reason_text|length > 120 %}…{% endif %}
+          </div>
+        </div>
+
+        <div class="bac-timeline">
+          <div class="bac-timeline-item">
+            <span class="bac-tl-label">{{ 'موعد المغادرة' if ar else 'Departure' }}</span>
+            <span class="bac-tl-value">{{ r.departure_datetime.strftime('%d %b %Y, %I:%M %p') }}</span>
+          </div>
+          <div class="bac-timeline-item">
+            <span class="bac-tl-label">{{ 'موعد العودة' if ar else 'Return' }}</span>
+            <span class="bac-tl-value">{{ r.return_datetime.strftime('%d %b %Y, %I:%M %p') }}</span>
+          </div>
+          <div class="bac-timeline-item">
+            <span class="bac-tl-label">{{ 'المدة' if ar else 'Duration' }}</span>
+            <span class="bac-tl-value">
+              {% set diff = r.return_datetime - r.departure_datetime %}
+              {% set total_h = (diff.total_seconds() // 3600)|int %}
+              {% set days = (total_h // 24)|int %}
+              {% set hrs  = (total_h % 24)|int %}
+              {% if days > 0 %}{{ days }}d {% endif %}{% if hrs > 0 %}{{ hrs }}h{% endif %}{% if days == 0 and hrs == 0 %}&lt;1h{% endif %}
+            </span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty-state" style="border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+    <div class="empty-icon">📋</div>
+    <p>{{ 'لا توجد سجلات لهذا الاختيار.' if ar else 'No records found for this selection.' }}</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function setReportType(type) {
+  document.getElementById('report_type_input').value = type;
+  document.querySelectorAll('.report-type-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('employee-selector-wrap').style.display   = type === 'employee'   ? 'block' : 'none';
+  document.getElementById('department-selector-wrap').style.display = type === 'department' ? 'block' : 'none';
+  document.getElementById('manager-selector-wrap').style.display    = type === 'manager'    ? 'block' : 'none';
+  document.getElementById('employee_select').disabled   = type !== 'employee';
+  document.getElementById('department_select').disabled = type !== 'department';
+  document.getElementById('manager_select').disabled    = type !== 'manager';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const type = document.getElementById('report_type_input').value || 'employee';
+  document.getElementById('employee_select').disabled   = type !== 'employee';
+  document.getElementById('department_select').disabled = type !== 'department';
+  document.getElementById('manager_select').disabled    = type !== 'manager';
+});
+</script>
+
+<style>
+@media print {
+  .no-print, nav, .page-header button { display:none !important; }
+  .booking-admin-card { break-inside: avoid; page-break-inside: avoid; }
+}
+</style>
+{% endblock %}

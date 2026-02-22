@@ -46,6 +46,9 @@
           <a href="{{ url_for('main.admin_dashboard') }}" class="nav-dropdown-item">
             📋 {{ 'تصاريح المغادرة' if session.get('lang') == 'ar' else 'Leave Requests' }}
           </a>
+          <a href="{{ url_for('main.admin_leave_reports') }}" class="nav-dropdown-item">
+            📊 {{ 'تقارير المغادرة' if session.get('lang') == 'ar' else 'Leave Reports' }}
+          </a>
           <div class="nav-dropdown-divider"></div>
           <a href="{{ url_for('cars.admin_bookings') }}" class="nav-dropdown-item">
             🚗 {{ 'حجوزات السيارات' if session.get('lang') == 'ar' else 'Car Bookings' }}

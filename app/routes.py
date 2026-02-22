@@ -1,5 +1,5 @@
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from . import db
 from .auth import authenticate, get_managers
@@ -278,6 +278,159 @@ def update_status(id):
             "success"
         )
     return redirect(url_for("main.admin_dashboard"))
+
+
+@main.route("/admin/leave/reports")
+@login_required
+@admin_required
+def admin_leave_reports():
+    from sqlalchemy import text
+    report_type   = request.args.get("type", "employee")
+    selected_id   = request.args.get("selected_id", "all")
+    date_from     = request.args.get("date_from", "")
+    date_to       = request.args.get("date_to", "")
+    status_filter = request.args.get("status", "all")
+
+    # Distinct selectors
+    employee_rows = db.session.execute(text(
+        "SELECT DISTINCT ON (employee_name) "
+        "employee_username, employee_name, employee_department, employee_name_ar "
+        "FROM leave_requests ORDER BY employee_name ASC"
+    )).fetchall()
+    department_rows = db.session.execute(text(
+        "SELECT DISTINCT employee_department, employee_department_ar "
+        "FROM leave_requests "
+        "WHERE employee_department IS NOT NULL AND employee_department != '' "
+        "ORDER BY employee_department ASC"
+    )).fetchall()
+    manager_rows = db.session.execute(text(
+        "SELECT DISTINCT manager_name, manager_name_ar "
+        "FROM leave_requests "
+        "WHERE manager_name IS NOT NULL AND manager_name != '' "
+        "ORDER BY manager_name ASC"
+    )).fetchall()
+
+    query = LeaveRequest.query
+
+    if report_type == "employee" and selected_id != "all":
+        query = query.filter_by(employee_username=selected_id)
+    elif report_type == "department" and selected_id != "all":
+        query = query.filter(LeaveRequest.employee_department == selected_id)
+    elif report_type == "manager" and selected_id != "all":
+        query = query.filter(LeaveRequest.manager_name == selected_id)
+
+    if status_filter != "all":
+        query = query.filter_by(status=status_filter)
+
+    if date_from:
+        try:
+            query = query.filter(LeaveRequest.departure_datetime >= datetime.strptime(date_from, "%Y-%m-%d"))
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            query = query.filter(LeaveRequest.departure_datetime <= datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1))
+        except ValueError:
+            pass
+
+    records = query.order_by(LeaveRequest.departure_datetime.desc()).all()
+
+    # Stats
+    durations = [(r.return_datetime - r.departure_datetime).total_seconds() / 86400 for r in records]
+    avg_duration = round(sum(durations) / len(durations), 1) if durations else 0
+    stats = {
+        "total":    len(records),
+        "approved": sum(1 for r in records if r.status == "approved"),
+        "pending":  sum(1 for r in records if r.status == "pending"),
+        "draft":    sum(1 for r in records if r.status == "draft"),
+        "archived": sum(1 for r in records if r.status == "archived"),
+        "avg_duration": avg_duration,
+    }
+
+    # Report title
+    if report_type == "employee":
+        if selected_id != "all" and records:
+            report_title = f"{records[0].employee_name} ({selected_id})"
+        elif selected_id != "all":
+            match = [u for u in employee_rows if u.employee_username == selected_id]
+            report_title = match[0].employee_name if match else selected_id
+        else:
+            report_title = "All Employees"
+    elif report_type == "department":
+        report_title = selected_id if selected_id != "all" else "All Departments"
+    else:
+        report_title = selected_id if selected_id != "all" else "All Managers"
+
+    return render_template("admin/reports.html",
+        employee_rows=employee_rows, department_rows=department_rows,
+        manager_rows=manager_rows, records=records,
+        report_type=report_type, selected_id=selected_id,
+        date_from=date_from, date_to=date_to,
+        status_filter=status_filter, report_title=report_title, stats=stats)
+
+
+@main.route("/admin/leave/reports/print")
+@login_required
+@admin_required
+def admin_leave_reports_print():
+    from sqlalchemy import text
+    report_type   = request.args.get("type", "employee")
+    selected_id   = request.args.get("selected_id", "all")
+    date_from     = request.args.get("date_from", "")
+    date_to       = request.args.get("date_to", "")
+    status_filter = request.args.get("status", "all")
+
+    query = LeaveRequest.query
+
+    if report_type == "employee" and selected_id != "all":
+        query = query.filter_by(employee_username=selected_id)
+    elif report_type == "department" and selected_id != "all":
+        query = query.filter(LeaveRequest.employee_department == selected_id)
+    elif report_type == "manager" and selected_id != "all":
+        query = query.filter(LeaveRequest.manager_name == selected_id)
+
+    if status_filter != "all":
+        query = query.filter_by(status=status_filter)
+
+    if date_from:
+        try:
+            query = query.filter(LeaveRequest.departure_datetime >= datetime.strptime(date_from, "%Y-%m-%d"))
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            query = query.filter(LeaveRequest.departure_datetime <= datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1))
+        except ValueError:
+            pass
+
+    records = query.order_by(LeaveRequest.departure_datetime.desc()).all()
+
+    durations = [(r.return_datetime - r.departure_datetime).total_seconds() / 86400 for r in records]
+    avg_duration = round(sum(durations) / len(durations), 1) if durations else 0
+    stats = {
+        "total":    len(records),
+        "approved": sum(1 for r in records if r.status == "approved"),
+        "pending":  sum(1 for r in records if r.status == "pending"),
+        "draft":    sum(1 for r in records if r.status == "draft"),
+        "archived": sum(1 for r in records if r.status == "archived"),
+        "avg_duration": avg_duration,
+    }
+
+    if report_type == "employee":
+        if selected_id != "all" and records:
+            report_title = f"{records[0].employee_name}"
+        else:
+            report_title = "All Employees"
+    elif report_type == "department":
+        report_title = selected_id if selected_id != "all" else "All Departments"
+    else:
+        report_title = selected_id if selected_id != "all" else "All Managers"
+
+    return render_template("admin/report_print.html",
+        records=records, report_type=report_type, selected_id=selected_id,
+        date_from=date_from, date_to=date_to, status_filter=status_filter,
+        report_title=report_title, stats=stats, now=datetime.utcnow())
+
 
 @main.route("/set-language/<lang>")
 def set_language(lang):
