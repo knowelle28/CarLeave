@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}{{ ('تعديل' if car else 'إضافة') + ' سيارة' if session.get('lang') == 'ar' else ('Edit' if car else 'Add') + ' Vehicle — LeavePass' }}{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      {% if car %}{{ 'تعديل سيارة' if ar else 'Edit Vehicle' }}
+      {% else %}{{ 'إضافة سيارة جديدة' if ar else 'Add New Vehicle' }}{% endif %}
+    </h1>
+  </div>
+  <a href="{{ url_for('cars.admin_fleet') }}" class="btn btn-ghost">
+    {{ '→ رجوع' if ar else '← Back' }}
+  </a>
+</div>
+
+<div class="form-card" style="max-width:680px;">
+
+  {% if car and car.plate_image %}
+  <div style="margin-bottom:1.5rem;">
+    <label class="form-label">{{ 'صورة اللوحة الحالية' if ar else 'Current Plate Image' }}</label>
+    <img src="{{ car.image_url() }}" alt="plate"
+         style="width:100%;max-height:160px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">
+  </div>
+  {% endif %}
+
+  <form method="POST"
+        action="{{ url_for('cars.admin_edit_car', id=car.id) if car else url_for('cars.admin_add_car') }}"
+        enctype="multipart/form-data">
+
+    <div class="lang-section-header en-header" style="margin-bottom:1rem;">
+      {{ 'بيانات السيارة' if ar else 'Vehicle Details' }}
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-group">
+        <label class="form-label">
+          {{ 'رقم اللوحة (إنجليزي)' if ar else 'Plate Number' }}
+          <span class="required">*</span>
+        </label>
+        <input class="form-input mono" type="text" name="plate_number"
+               placeholder="e.g. 12345 AB"
+               value="{{ car.plate_number if car else '' }}" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ 'رقم اللوحة (عربي)' if ar else 'Plate Number (Arabic)' }}</label>
+        <input class="form-input rtl-input" type="text" name="plate_number_ar"
+               placeholder="مثال: أ ب 12345"
+               value="{{ car.plate_number_ar if car else '' }}">
+      </div>
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-group">
+        <label class="form-label">{{ 'الشركة المصنعة' if ar else 'Make' }} <span class="required">*</span></label>
+        <input class="form-input" type="text" name="make"
+               placeholder="e.g. Toyota"
+               value="{{ car.make if car else '' }}" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ 'الموديل' if ar else 'Model' }} <span class="required">*</span></label>
+        <input class="form-input" type="text" name="model"
+               placeholder="e.g. Land Cruiser"
+               value="{{ car.model if car else '' }}" required>
+      </div>
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-group">
+        <label class="form-label">{{ 'سنة الصنع' if ar else 'Year' }} <span class="required">*</span></label>
+        <input class="form-input" type="number" name="year"
+               min="2000" max="2035"
+               placeholder="e.g. 2022"
+               value="{{ car.year if car else '' }}" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ 'عدد المقاعد' if ar else 'Seats' }}</label>
+        <input class="form-input" type="number" name="seats"
+               min="2" max="15"
+               value="{{ car.seats if car else 5 }}">
+      </div>
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-group">
+        <label class="form-label">{{ 'اللون (إنجليزي)' if ar else 'Color' }}</label>
+        <input class="form-input" type="text" name="color"
+               placeholder="e.g. White"
+               value="{{ car.color if car else '' }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ 'اللون (عربي)' if ar else 'Color (Arabic)' }}</label>
+        <input class="form-input rtl-input" type="text" name="color_ar"
+               placeholder="مثال: أبيض"
+               value="{{ car.color_ar if car else '' }}">
+      </div>
+    </div>
+
+    <!-- MILEAGE & MAINTENANCE -->
+    <div class="lang-section-header shared-header" style="margin:1.5rem 0 1rem;">
+      {{ 'العداد والصيانة' if ar else 'Mileage & Maintenance' }}
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">
+        {{ 'قراءة العداد الحالية (كم)' if ar else 'Current Mileage (km)' }}
+      </label>
+      <input class="form-input mono" type="number" name="current_mileage"
+             step="0.1" min="0"
+             placeholder="e.g. 45230"
+             value="{{ car.current_mileage if car and car.current_mileage else '' }}">
+      <small style="color:var(--text-muted);font-size:0.78rem;">
+        {{ 'تُحدَّث تلقائياً عند تسجيل العودة.' if ar else 'Also updates automatically when a return is recorded.' }}
+      </small>
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-group">
+        <label class="form-label">
+          {{ 'تاريخ آخر صيانة كبرى' if ar else 'Last Major Maintenance' }}
+        </label>
+        <input class="form-input" type="date" name="last_major_maintenance"
+               value="{{ car.last_major_maintenance.strftime('%Y-%m-%d') if car and car.last_major_maintenance else '' }}">
+        <small style="color:var(--text-muted);font-size:0.78rem;">
+          {{ 'مثال: المحرك، الفرامل، ناقل الحركة' if ar else 'e.g. engine, brakes, transmission' }}
+        </small>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          {{ 'تاريخ آخر صيانة صغرى' if ar else 'Last Minor Maintenance' }}
+        </label>
+        <input class="form-input" type="date" name="last_minor_maintenance"
+               value="{{ car.last_minor_maintenance.strftime('%Y-%m-%d') if car and car.last_minor_maintenance else '' }}">
+        <small style="color:var(--text-muted);font-size:0.78rem;">
+          {{ 'مثال: تغيير الزيت، الفلاتر' if ar else 'e.g. oil change, filters' }}
+        </small>
+      </div>
+    </div>
+
+    <!-- PLATE PHOTO -->
+    <div class="lang-section-header shared-header" style="margin:1.5rem 0 1rem;">
+      {{ 'صورة اللوحة' if ar else 'Plate Photo' }}
+    </div>
+
+    <div class="form-group">
+      <input class="form-input" type="file" name="plate_image"
+             accept=".jpg,.jpeg,.png,.webp">
+      <small style="color:var(--text-muted);font-size:0.78rem;">
+        {{ 'JPG أو PNG. الحجم الأقصى 5MB.' if ar else 'JPG or PNG. Max 5MB.' }}
+        {% if car and car.plate_image %}
+        {{ ' سيتم استبدال الصورة الحالية.' if ar else ' Will replace the current image.' }}
+        {% endif %}
+      </small>
+    </div>
+
+    {% if car %}
+    <div class="form-group" style="margin-top:1rem;">
+      <label class="form-label">{{ 'الحالة' if ar else 'Status' }}</label>
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.25rem;">
+        <input type="checkbox" name="is_active" id="is_active"
+               {% if car.is_active %}checked{% endif %}
+               style="width:18px;height:18px;cursor:pointer;">
+        <label for="is_active" style="cursor:pointer;font-size:0.875rem;">
+          {{ 'السيارة نشطة ومتاحة للحجز' if ar else 'Vehicle is active and available for booking' }}
+        </label>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="form-actions">
+      <a href="{{ url_for('cars.admin_fleet') }}" class="btn btn-ghost">
+        {{ 'إلغاء' if ar else 'Cancel' }}
+      </a>
+      <button type="submit" class="btn btn-primary">
+        {% if car %}{{ 'حفظ التغييرات' if ar else 'Save Changes' }}
+        {% else %}{{ 'إضافة السيارة' if ar else 'Add Vehicle' }}{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

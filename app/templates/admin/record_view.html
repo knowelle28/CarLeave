@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}{{ lr.request_number }} — LeavePass{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ lr.request_number }}</h1>
+    <p class="page-subtitle">
+      <span class="badge {{ lr.status_badge_class() }}">{{ lr.status }}</span>
+      &nbsp;·&nbsp;
+      {{ 'تم التقديم في' if ar else 'Submitted' }}
+      {{ lr.created_at.strftime('%Y/%m/%d') if ar else lr.created_at.strftime('%B %d, %Y') }}
+    </p>
+  </div>
+  <div style="display:flex;gap:0.75rem;">
+    <a href="{{ url_for('main.print_slip', id=lr.id) }}" class="btn btn-outline">
+      🖨 {{ 'طباعة' if ar else 'Print' }}
+    </a>
+    <a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-ghost">
+      {{ '→ رجوع' if ar else '← Back' }}
+    </a>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <div class="detail-card">
+    <h3 class="detail-card-title">{{ 'بيانات الموظف' if ar else 'Employee Details' }}</h3>
+    <div class="detail-rows">
+      <div class="detail-row">
+        <span>{{ 'الاسم الكامل' if ar else 'Full Name' }}</span>
+        <span>{{ lr.employee_name_ar if ar and lr.employee_name_ar else lr.employee_name }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'رقم الموظف' if ar else 'Employee No.' }}</span>
+        <span class="mono">{{ lr.employee_number }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'القسم' if ar else 'Department' }}</span>
+        <span>{{ lr.employee_department_ar if ar and lr.employee_department_ar else lr.employee_department }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-card">
+    <h3 class="detail-card-title">{{ 'تفاصيل المغادرة' if ar else 'Leave Details' }}</h3>
+    <div class="detail-rows">
+      <div class="detail-row">
+        <span>{{ 'الوجهة' if ar else 'Destination' }}</span>
+        <span>{{ (lr.destination_ar if ar and lr.destination_ar else lr.destination) or '—' }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'السبب' if ar else 'Reason' }}</span>
+        <span>{{ lr.reason_ar if ar and lr.reason_ar else lr.reason }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'المغادرة' if ar else 'Departure' }}</span>
+        <span>{{ lr.departure_datetime.strftime('%Y/%m/%d %I:%M %p') if ar else lr.departure_datetime.strftime('%B %d, %Y %I:%M %p') }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'العودة' if ar else 'Return' }}</span>
+        <span>{{ lr.return_datetime.strftime('%Y/%m/%d %I:%M %p') if ar else lr.return_datetime.strftime('%B %d, %Y %I:%M %p') }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'المدير' if ar else 'Manager' }}</span>
+        <span>{{ lr.manager_name_ar if ar and lr.manager_name_ar else lr.manager_name }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-card">
+    <h3 class="detail-card-title">{{ 'سجل الوقت' if ar else 'Record Timeline' }}</h3>
+    <div class="detail-rows">
+      <div class="detail-row">
+        <span>{{ 'تاريخ الإنشاء' if ar else 'Created' }}</span>
+        <span>{{ lr.created_at.strftime('%Y/%m/%d %I:%M %p') if ar else lr.created_at.strftime('%b %d, %Y %I:%M %p') }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'آخر تحديث' if ar else 'Last Updated' }}</span>
+        <span>{{ lr.updated_at.strftime('%Y/%m/%d %I:%M %p') if ar else lr.updated_at.strftime('%b %d, %Y %I:%M %p') }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'تاريخ الطباعة' if ar else 'Printed' }}</span>
+        <span>{{ lr.printed_at.strftime('%Y/%m/%d %I:%M %p') if lr.printed_at else '—' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-card">
+    <h3 class="detail-card-title">{{ 'تحديث الحالة' if ar else 'Update Status' }}</h3>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">
+      {{ 'بعد استلام النسخة الإدارية الموقعة، حدّث الحالة إلى معتمد.' if ar else 'Once HR receives the signed administrative copy, mark it as approved.' }}
+    </p>
+    <form method="POST" action="{{ url_for('main.update_status', id=lr.id) }}">
+      <div class="status-btn-group">
+        {% for s, s_ar in [('draft','مسودة'),('pending','معلق'),('approved','معتمد'),('archived','مؤرشف')] %}
+        <button type="submit" name="status" value="{{ s }}"
+          class="btn btn-sm {% if lr.status == s %}btn-primary{% else %}btn-outline{% endif %}">
+          {{ s_ar if ar else s|capitalize }}
+        </button>
+        {% endfor %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

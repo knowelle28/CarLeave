@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ 'تعديل ' + lr.request_number + ' — LeavePass' if session.get('lang') == 'ar' else 'Edit ' + lr.request_number + ' — LeavePass' }}{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'تعديل طلب المغادرة' if ar else 'Edit Leave Request' }}</h1>
+    <p class="page-subtitle">
+      <span class="mono">{{ lr.request_number }}</span>
+      &nbsp;·&nbsp;
+      <span class="badge {{ lr.status_badge_class() }}">{{ lr.status }}</span>
+    </p>
+  </div>
+  <a href="{{ url_for('main.dashboard') }}" class="btn btn-ghost">
+    {{ '→ رجوع' if ar else '← Back' }}
+  </a>
+</div>
+<div class="form-card">
+  <div class="form-card-info">
+    <div class="info-row">
+      <span class="info-label">{{ 'الموظف' if ar else 'Employee' }}</span>
+      <span class="info-value">{{ lr.employee_name }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">{{ 'القسم' if ar else 'Department' }}</span>
+      <span class="info-value">{{ lr.employee_department }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">{{ 'رقم الموظف' if ar else 'Employee No.' }}</span>
+      <span class="info-value mono">{{ lr.employee_number }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">{{ 'تاريخ الإنشاء' if ar else 'Created' }}</span>
+      <span class="info-value">{{ lr.created_at.strftime('%Y/%m/%d %I:%M %p') if ar else lr.created_at.strftime('%b %d, %Y %I:%M %p') }}</span>
+    </div>
+  </div>
+  <form method="POST" action="{{ url_for('main.edit_leave', id=lr.id) }}" id="leaveForm">
+  <input type="hidden" name="ui_lang" value="{{ session.get(\'lang\', \'en\') }}">
+    {% include 'partials/form_fields.html' %}
+    <div class="form-actions">
+      <button type="submit" name="action" value="save" class="btn btn-outline">
+        💾 {{ 'حفظ التغييرات' if ar else 'Save Changes' }}
+      </button>
+      <button type="submit" name="action" value="print" class="btn btn-primary">
+        🖨 {{ 'حفظ وطباعة' if ar else 'Save & Print' }}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="{{ 'ar' if lr.is_arabic() else 'en' }}" dir="{{ 'rtl' if lr.is_arabic() else 'ltr' }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leave Pass {{ lr.request_number }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/print.css') }}">
+{% if lr.is_arabic() %}
+<style>
+  .slip { font-family: 'Noto Naskh Arabic', serif; direction: rtl; }
+  .slip-fields { direction: rtl; }
+  .slip-field-value { text-align: right; }
+  .slip-signatures { flex-direction: row-reverse; }
+</style>
+{% endif %}
+</head>
+<body class="print-body">
+
+<!-- ══════════════════════════════════════════
+     NO-PRINT TOOLBAR
+══════════════════════════════════════════ -->
+<div class="print-toolbar no-print">
+  <div class="print-toolbar-inner">
+    <div>
+      <strong>{{ lr.request_number }}</strong>
+      &nbsp;·&nbsp;
+      <span class="badge {{ lr.status_badge_class() }}">{{ lr.status }}</span>
+      &nbsp;·&nbsp;
+      <span style="font-size:0.78rem;color:rgba(255,255,255,0.6);">
+        {{ 'Arabic / عربي' if lr.is_arabic() else 'English' }}
+      </span>
+    </div>
+    <div class="print-toolbar-actions">
+      {% if lr.is_editable() %}
+      <a href="{{ url_for('main.edit_leave', id=lr.id) }}" class="btn btn-ghost btn-sm">✏ Edit</a>
+      {% endif %}
+      <a href="{{ url_for('main.dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
+      <button onclick="window.print()" class="btn btn-primary">🖨 Print Now</button>
+    </div>
+  </div>
+  <p class="print-toolbar-hint">
+    {% if lr.is_arabic() %}
+    سيتم طباعة نسخة الموظف على صفحة ونسخة الإدارة على صفحة منفصلة. وقّع المدير على النسختين، ثم سلّم نسخة الإدارة للموارد البشرية.
+    {% else %}
+    Employee Copy prints on page 1, Administrative Copy on page 2. Have your manager sign both, then give the <strong>Administrative Copy</strong> to HR.
+    {% endif %}
+  </p>
+</div>
+
+<div class="print-page">
+
+  {% if lr.is_arabic() %}
+
+  <!-- ══════════════════════════════════════════
+       ARABIC — PAGE 1: EMPLOYEE COPY
+  ══════════════════════════════════════════ -->
+  <div class="slip page-break-after">
+    <div class="slip-header" style="flex-direction:row-reverse;">
+      <div class="slip-header-left" style="text-align:right;">
+        <div class="slip-org" style="font-family:'Noto Naskh Arabic',serif;">تصريح مغادرة المكتب</div>
+        <div class="slip-reqno mono">{{ lr.request_number }}</div>
+      </div>
+      <div class="slip-copy-label employee-copy" style="font-family:'Noto Naskh Arabic',serif;">نسخة الموظف</div>
+    </div>
+    <div class="slip-body">
+      <div class="slip-fields" style="direction:rtl;">
+        <div class="slip-field">
+          <div class="slip-field-label" style="font-family:'Noto Naskh Arabic',serif;">اسم الموظف</div>
+          <div class="slip-field-value" style="text-align:right;">{{ lr.employee_name_ar or lr.employee_name }}</div>
+        </div>
+        <div class="slip-field">
+          <div class="slip-field-label">Employee No.</div>
+          <div class="slip-field-value mono">{{ lr.employee_number }}</div>
+        </div>
+        <div class="slip-field">
+          <div class="slip-field-label" style="font-family:'Noto Naskh Arabic',serif;">القسم</div>
+          <div class="slip-field-value" style="text-align:right;">{{ lr.employee_department_ar or lr.employee_department }}</div>
+        </div>
+        <div class="slip-field slip-field-wide">
+          <div class="slip-field-label" style="font-family:'Noto Naskh Arabic',serif;">الوجهة</div>
+          <div class="slip-field-value" style="text-align:right;">{{ lr.destination_ar or '—' }}</div>
+        </div>
+        <div class="slip-field slip-field-wide">
+          <div class="slip-field-label" style="font-family:'Noto Naskh Arabic',serif;">سبب المغادرة</div>
+          <div class="slip-field-value" style="text-align:right;">{{ lr.reason_ar }}</div>
+        </div>
+        <div class="slip-field">
+          <div class="slip-field-label" style="font-family:'Noto Naskh Arabic',serif;">تاريخ المغادرة</div>
+          <div class="slip-field-value">
+            {{ lr.departure_datetime.strftime('%Y/%m/%d') }}<br>
+            <span class="slip-time">{{ lr.departure_datetime.strftime('%I:%M %p') }}</span>
+          </div>
+        </div>
+        <div class="slip-field">
+          <div class="slip-field-label" style="font-family:'Noto Naskh Arabic',serif;">تاريخ العودة المتوقع</div>
+          <div class="slip-field-value">
+            {{ lr.return_datetime.strftime('%Y/%m/%d') }}<br>
+            <span class="slip-time">{{ lr.return_datetime.strftime('%I:%M %p') }}</span>
+          </div>
+        </div>
+        <div class="slip-field slip-field-wide">
+          <div class="slip-field-label" style="font-family:'Noto Naskh Arabic',serif;">المدير المعتمد</div>
+          <div class="slip-field-value" style="text-align:right;">{{ lr.manager_name_ar or lr.manager_name }}</div>
+        </div>
+      </div>
+      <div class="slip-signatures" style="flex-direction:row-reverse;">
+        <div class="sig-block">
+          <div class="sig-name">{{ lr.employee_name_ar or lr.employee_name }}</div>
+          <div class="sig-line"></div>
+          <div class="sig-label" style="font-family:'Noto Naskh Arabic',serif;">توقيع الموظف والتاريخ</div>
+        </div>
+        <div class="sig-block">
+          <div class="sig-name">{{ lr.manager_name_ar or lr.manager_name }}</div>
+          <div class="sig-line"></div>
+          <div class="sig-label" style="font-family:'Noto Naskh Arabic',serif;">توقيع المدير والتاريخ</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       ARABIC — PAGE 2: HR/ADMIN COPY
+  ══════════════════════════════════════════ -->
+  <div class="slip">
+    <div class="slip-header" style="flex-direction:row-reverse;">
+      <div class="slip-header-left" style="text-align:right;">
+        <div class="slip-org" style="font-family:'Noto Naskh Arabic',serif;">تصريح مغادرة المكتب</div>
+        <div class="slip-reqno mono">{{ lr.request_number }}</div>
+      </div>
+      <div class="slip-copy-label admin-copy" style="font-family:'Noto Naskh Arabic',serif;">نسخة الإدارة — الموارد البشرية</div>
+    </div>
+    <div class="slip-body">
+      <div class="slip-fields" style="direction:rtl;">
+        <div class="slip-field">
+          <div class="slip-field-label" style="font-family:'Noto Naskh Arabic',serif;">اسم الموظف</div>
+          <div class="slip-field-value" style="text-align:right;">{{ lr.employee_name_ar or lr.employee_name }}</div>
+        </div>
+        <div class="slip-field">
+          <div class="slip-field-label">Employee No.</div>
+          <div class="slip-field-value mono">{{ lr.employee_number }}</div>
+        </div>
+        <div class="slip-field">
+          <div class="slip-field-label" style="font-family:'Noto Naskh Arabic',serif;">القسم</div>
+          <div class="slip-field-value" style="text-align:right;">{{ lr.employee_department_ar or lr.employee_department }}</div>
+        </div>
+        <div class="slip-field slip-field-wide">
+          <div class="slip-field-label" style="font-family:'Noto Naskh Arabic',serif;">الوجهة</div>
+          <div class="slip-field-value" style="text-align:right;">{{ lr.destination_ar or '—' }}</div>
+        </div>
+        <div class="slip-field slip-field-wide">
+          <div class="slip-field-label" style="font-family:'Noto Naskh Arabic',serif;">سبب المغادرة</div>
+          <div class="slip-field-value" style="text-align:right;">{{ lr.reason_ar }}</div>
+        </div>
+        <div class="slip-field">
+          <div class="slip-field-label" style="font-family:'Noto Naskh Arabic',serif;">تاريخ المغادرة</div>
+          <div class="slip-field-value">
+            {{ lr.departure_datetime.strftime('%Y/%m/%d') }}<br>
+            <span class="slip-time">{{ lr.departure_datetime.strftime('%I:%M %p') }}</span>
+          </div>
+        </div>
+        <div class="slip-field">
+          <div class="slip-field-label" style="font-family:'Noto Naskh Arabic',serif;">تاريخ العودة المتوقع</div>
+          <div class="slip-field-value">
+            {{ lr.return_datetime.strftime('%Y/%m/%d') }}<br>
+            <span class="slip-time">{{ lr.return_datetime.strftime('%I:%M %p') }}</span>
+          </div>
+        </div>
+        <div class="slip-field slip-field-wide">
+          <div class="slip-field-label" style="font-family:'Noto Naskh Arabic',serif;">المدير المعتمد</div>
+          <div class="slip-field-value" style="text-align:right;">{{ lr.manager_name_ar or lr.manager_name }}</div>
+        </div>
+      </div>
+      <div class="slip-signatures" style="flex-direction:row-reverse;">
+        <div class="sig-block">
+          <div class="sig-name">{{ lr.employee_name_ar or lr.employee_name }}</div>
+          <div class="sig-line"></div>
+          <div class="sig-label" style="font-family:'Noto Naskh Arabic',serif;">توقيع الموظف والتاريخ</div>
+        </div>
+        <div class="sig-block">
+          <div class="sig-name">{{ lr.manager_name_ar or lr.manager_name }}</div>
+          <div class="sig-line"></div>
+          <div class="sig-label" style="font-family:'Noto Naskh Arabic',serif;">توقيع المدير والتاريخ</div>
+        </div>
+        <div class="sig-block">
+          <div class="sig-line"></div>
+          <div class="sig-label" style="font-family:'Noto Naskh Arabic',serif;">استلمت من قبل الموارد البشرية والتاريخ</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+
+  <!-- ══════════════════════════════════════════
+       ENGLISH — PAGE 1: EMPLOYEE COPY
+  ══════════════════════════════════════════ -->
+  <div class="slip page-break-after">
+    <div class="slip-header">
+      <div class="slip-header-left">
+        <div class="slip-org">OFFICE LEAVE PASS</div>
+        <div class="slip-reqno mono">{{ lr.request_number }}</div>
+      </div>
+      <div class="slip-copy-label employee-copy">Employee Copy</div>
+    </div>
+    <div class="slip-body">
+      <div class="slip-fields">
+        <div class="slip-field"><div class="slip-field-label">Employee Name</div><div class="slip-field-value">{{ lr.employee_name }}</div></div>
+        <div class="slip-field"><div class="slip-field-label">Employee No.</div><div class="slip-field-value mono">{{ lr.employee_number }}</div></div>
+        <div class="slip-field"><div class="slip-field-label">Department</div><div class="slip-field-value">{{ lr.employee_department }}</div></div>
+        <div class="slip-field slip-field-wide"><div class="slip-field-label">Destination</div><div class="slip-field-value">{{ lr.destination or '—' }}</div></div>
+        <div class="slip-field slip-field-wide"><div class="slip-field-label">Reason for Leave</div><div class="slip-field-value">{{ lr.reason }}</div></div>
+        <div class="slip-field">
+          <div class="slip-field-label">Departure</div>
+          <div class="slip-field-value">{{ lr.departure_datetime.strftime('%B %d, %Y') }}<br><span class="slip-time">{{ lr.departure_datetime.strftime('%I:%M %p') }}</span></div>
+        </div>
+        <div class="slip-field">
+          <div class="slip-field-label">Expected Return</div>
+          <div class="slip-field-value">{{ lr.return_datetime.strftime('%B %d, %Y') }}<br><span class="slip-time">{{ lr.return_datetime.strftime('%I:%M %p') }}</span></div>
+        </div>
+        <div class="slip-field slip-field-wide"><div class="slip-field-label">Approving Manager</div><div class="slip-field-value">{{ lr.manager_name }}</div></div>
+      </div>
+      <div class="slip-signatures">
+        <div class="sig-block">
+          <div class="sig-name">{{ lr.employee_name }}</div>
+          <div class="sig-line"></div>
+          <div class="sig-label">Employee Signature &amp; Date</div>
+        </div>
+        <div class="sig-block">
+          <div class="sig-name">{{ lr.manager_name }}</div>
+          <div class="sig-line"></div>
+          <div class="sig-label">Manager Signature &amp; Date</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       ENGLISH — PAGE 2: HR/ADMIN COPY
+  ══════════════════════════════════════════ -->
+  <div class="slip">
+    <div class="slip-header">
+      <div class="slip-header-left">
+        <div class="slip-org">OFFICE LEAVE PASS</div>
+        <div class="slip-reqno mono">{{ lr.request_number }}</div>
+      </div>
+      <div class="slip-copy-label admin-copy">Administrative Copy — HR</div>
+    </div>
+    <div class="slip-body">
+      <div class="slip-fields">
+        <div class="slip-field"><div class="slip-field-label">Employee Name</div><div class="slip-field-value">{{ lr.employee_name }}</div></div>
+        <div class="slip-field"><div class="slip-field-label">Employee No.</div><div class="slip-field-value mono">{{ lr.employee_number }}</div></div>
+        <div class="slip-field"><div class="slip-field-label">Department</div><div class="slip-field-value">{{ lr.employee_department }}</div></div>
+        <div class="slip-field slip-field-wide"><div class="slip-field-label">Destination</div><div class="slip-field-value">{{ lr.destination or '—' }}</div></div>
+        <div class="slip-field slip-field-wide"><div class="slip-field-label">Reason for Leave</div><div class="slip-field-value">{{ lr.reason }}</div></div>
+        <div class="slip-field">
+          <div class="slip-field-label">Departure</div>
+          <div class="slip-field-value">{{ lr.departure_datetime.strftime('%B %d, %Y') }}<br><span class="slip-time">{{ lr.departure_datetime.strftime('%I:%M %p') }}</span></div>
+        </div>
+        <div class="slip-field">
+          <div class="slip-field-label">Expected Return</div>
+          <div class="slip-field-value">{{ lr.return_datetime.strftime('%B %d, %Y') }}<br><span class="slip-time">{{ lr.return_datetime.strftime('%I:%M %p') }}</span></div>
+        </div>
+        <div class="slip-field slip-field-wide"><div class="slip-field-label">Approving Manager</div><div class="slip-field-value">{{ lr.manager_name }}</div></div>
+      </div>
+      <div class="slip-signatures">
+        <div class="sig-block">
+          <div class="sig-name">{{ lr.employee_name }}</div>
+          <div class="sig-line"></div>
+          <div class="sig-label">Employee Signature &amp; Date</div>
+        </div>
+        <div class="sig-block">
+          <div class="sig-name">{{ lr.manager_name }}</div>
+          <div class="sig-line"></div>
+          <div class="sig-label">Manager Signature &amp; Date</div>
+        </div>
+        <div class="sig-block">
+          <div class="sig-line"></div>
+          <div class="sig-label">Received by HR &amp; Date</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% endif %}
+
+</div>
+<script>window.addEventListener('load', function(){ setTimeout(() => window.print(), 500); });</script>
+</body>
+</html>

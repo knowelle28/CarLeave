@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Car Bookings Admin — LeavePass{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'إدارة حجوزات السيارات' if ar else 'Car Bookings' }}</h1>
+    <p class="page-subtitle">{{ 'مراجعة وإدارة طلبات الاستعارة' if ar else 'Review and manage vehicle booking requests' }}</p>
+  </div>
+</div>
+
+<!-- Status filter tabs -->
+<div class="filter-tabs" style="margin-bottom:1.5rem;">
+  {% for s in ['all','pending','borrowed','returned','archived'] %}
+  <a href="{{ url_for('cars.admin_bookings', status=s) }}"
+     class="filter-tab {% if status_filter == s %}active{% endif %}">
+    {{ s.capitalize() }}
+  </a>
+  {% endfor %}
+</div>
+
+{% if bookings %}
+<div class="booking-cards">
+  {% for b in bookings %}
+  <div class="booking-admin-card status-border-{{ b.status }}">
+
+    <!-- Card header -->
+    <div class="bac-header">
+      <div class="bac-left">
+        <span class="mono bac-number">{{ b.booking_number }}</span>
+        <span class="status-badge {{ b.status_badge_class() }}">{% if b.status == 'pending' %}{{ 'معلق' if ar else 'Pending' }}{% elif b.status == 'borrowed' %}{{ 'مستعار' if ar else 'Borrowed' }}{% elif b.status == 'returned' %}{{ 'مُعاد' if ar else 'Returned' }}{% elif b.status == 'archived' %}{{ 'مؤرشف' if ar else 'Archived' }}{% else %}{{ b.status }}{% endif %}</span>
+      </div>
+      <div class="bac-right">
+        {{ b.planned_departure.strftime('%d %b %Y') }}
+      </div>
+    </div>
+
+    <!-- Card body -->
+    <div class="bac-body">
+
+      <!-- Vehicle -->
+      <div class="bac-section">
+        <div class="bac-section-label">{{ 'السيارة' if ar else 'Vehicle' }}</div>
+        <div class="bac-section-value">
+          <span class="mono" style="font-weight:700;">{{ b.car.plate_number }}</span>
+          <span style="color:var(--text-muted);margin-left:0.5rem;">
+            {{ b.car.year }} {{ b.car.make }} {{ b.car.model }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Employee -->
+      <div class="bac-section">
+        <div class="bac-section-label">{{ 'الموظف' if ar else 'Employee' }}</div>
+        <div class="bac-section-value">
+          {{ b.employee_name }}
+          <span style="color:var(--text-muted);font-size:0.8rem;margin-left:0.4rem;">
+            {{ b.employee_department }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Manager -->
+      <div class="bac-section">
+        <div class="bac-section-label">{{ 'المدير' if ar else 'Manager' }}</div>
+        <div class="bac-section-value">{{ b.manager_name or '—' }}</div>
+      </div>
+
+      <!-- Destination & Purpose -->
+      <div class="bac-section">
+        <div class="bac-section-label">{{ 'الوجهة' if ar else 'Destination' }}</div>
+        <div class="bac-section-value">{{ b.destination or b.destination_ar or '—' }}</div>
+      </div>
+      {% if b.purpose or b.purpose_ar %}
+      <div class="bac-section">
+        <div class="bac-section-label">{{ 'الغرض' if ar else 'Purpose' }}</div>
+        <div class="bac-section-value" style="color:var(--text-muted);font-size:0.85rem;">
+          {{ b.purpose or b.purpose_ar }}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Timeline -->
+      <div class="bac-timeline">
+        <div class="bac-timeline-item">
+          <span class="bac-tl-label">{{ 'موعد المغادرة' if ar else 'Planned Departure' }}</span>
+          <span class="bac-tl-value">{{ b.planned_departure.strftime('%d %b %Y, %I:%M %p') }}</span>
+        </div>
+        {% if b.actual_departure %}
+        <div class="bac-timeline-item bac-tl-actual">
+          <span class="bac-tl-label">{{ 'غادر فعلياً' if ar else 'Borrowed At' }}</span>
+          <span class="bac-tl-value">{{ b.actual_departure.strftime('%d %b %Y, %I:%M %p') }}</span>
+        </div>
+        {% endif %}
+        {% if b.actual_return %}
+        <div class="bac-timeline-item bac-tl-returned">
+          <span class="bac-tl-label">{{ 'أُعيد في' if ar else 'Returned At' }}</span>
+          <span class="bac-tl-value">{{ b.actual_return.strftime('%d %b %Y, %I:%M %p') }}</span>
+        </div>
+        {% endif %}
+        {% if b.odometer_return %}
+        <div class="bac-timeline-item">
+          <span class="bac-tl-label">{{ 'العداد عند الإرجاع' if ar else 'Odometer on Return' }}</span>
+          <span class="bac-tl-value mono">{{ b.odometer_return | int }} km</span>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if b.return_note %}
+      <div style="grid-column:1/-1;">
+        <div class="car-detail-return-note" style="margin-top:0;">
+          <span class="car-detail-note-label">⚠️ {{ 'ملاحظة السائق عند الإرجاع' if ar else 'Driver Return Note' }}</span>
+          <span>{{ b.return_note }}</span>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- Card actions -->
+    <div class="bac-actions">
+      {% if b.status == 'pending' %}
+        <form method="POST" action="{{ url_for('cars.admin_update_status', id=b.id) }}"
+              style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:0.5rem;">
+          <input type="hidden" name="status" value="borrowed">
+          <input type="hidden" name="ui_lang" value="{{ session.get('lang', 'en') }}">
+          <div style="display:flex;flex-direction:column;gap:0.2rem;">
+            <label style="font-size:0.7rem;font-weight:700;text-transform:uppercase;
+                          letter-spacing:0.05em;color:var(--text-faint);">
+              {{ 'وقت تسليم المفتاح' if ar else 'Key Hand-Over Time' }}
+            </label>
+            <input type="datetime-local" name="actual_departure"
+                   id="dep_{{ b.id }}"
+                   class="form-input mono"
+                   style="padding:0.35rem 0.6rem;font-size:0.82rem;width:210px;"
+                   required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">
+            🔑 {{ 'تسليم المفتاح' if ar else 'Hand Over Key' }}
+          </button>
+        </form>
+        <form method="POST" action="{{ url_for('cars.admin_update_status', id=b.id) }}"
+              style="display:inline;margin-top:0.4rem;">
+          <input type="hidden" name="status" value="archived">
+          <input type="hidden" name="ui_lang" value="{{ session.get('lang', 'en') }}">
+          <button type="submit" class="btn btn-ghost btn-sm"
+                  onclick="return confirm('Reject this booking?')">
+            ✕ {{ 'رفض' if ar else 'Reject' }}
+          </button>
+        </form>
+
+      {% elif b.status == 'borrowed' %}
+        <a href="{{ url_for('cars.admin_update_status', id=b.id) }}"
+           class="btn btn-success btn-sm">
+          📥 {{ 'استلام المفتاح وتسجيل العداد' if ar else 'Receive Key & Record Odometer' }}
+        </a>
+
+      {% elif b.status == 'returned' %}
+        <form method="POST" action="{{ url_for('cars.admin_update_status', id=b.id) }}"
+              style="display:inline;">
+          <input type="hidden" name="status" value="archived">
+          <input type="hidden" name="ui_lang" value="{{ session.get('lang', 'en') }}">
+          <button type="submit" class="btn btn-ghost btn-sm">
+            🗄 {{ 'أرشفة' if ar else 'Archive' }}
+          </button>
+        </form>
+
+      {% elif b.status == 'archived' %}
+        <span style="color:var(--text-muted);font-size:0.8rem;">
+          {{ 'مؤرشف' if ar else 'Archived' }}
+        </span>
+      {% endif %}
+    </div>
+
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">🚗</div>
+  <p>{{ 'لا توجد حجوزات.' if ar else 'No bookings found.' }}</p>
+</div>
+{% endif %}
+{% endblock %}
+<script>
+// Default all hand-over datetime inputs to current time
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('input[name="actual_departure"]').forEach(function(el) {
+    const now = new Date();
+    now.setSeconds(0, 0);
+    el.value = now.toISOString().slice(0, 16);
+  });
+});
+</script>

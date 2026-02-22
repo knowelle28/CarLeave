@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="{{ session.get('lang', 'en') }}" dir="{{ 'rtl' if session.get('lang', 'en') == 'ar' else 'ltr' }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}LeavePass{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+{% if session.get('lang') == 'ar' %}
+<style>
+  body, .navbar, .btn, .form-label, .page-title, .page-subtitle,
+  .table th, .table td, .badge, .flash, .filter-tab,
+  .detail-card-title, .empty-state, .nav-link, .nav-btn-new,
+  .portal-card-title, .portal-card-desc, .fleet-name {
+    font-family: 'Noto Naskh Arabic', sans-serif;
+  }
+</style>
+{% endif %}
+{% block head %}{% endblock %}
+</head>
+<body>
+{% if session.user %}
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="{{ url_for('cars.portal') }}" class="nav-brand">
+      <span class="nav-brand-icon">⬡</span>
+      <span>LeavePass</span>
+    </a>
+    <div class="nav-links">
+      <a href="{{ url_for('main.dashboard') }}"
+         class="nav-link {% if request.blueprint == 'main' and 'admin' not in request.endpoint %}active{% endif %}">
+        {{ 'تصريح المغادرة' if session.get('lang') == 'ar' else 'Leave Pass' }}
+      </a>
+      <a href="{{ url_for('cars.dashboard') }}"
+         class="nav-link {% if request.endpoint in ['cars.dashboard','cars.new_booking','cars.booking_detail'] %}active{% endif %}">
+        {{ 'حجز السيارات' if session.get('lang') == 'ar' else 'Car Booking' }}
+      </a>
+
+      {% if session.user.is_admin %}
+      <div class="nav-dropdown">
+        <button class="nav-link nav-dropdown-toggle">
+          {{ 'الإدارة' if session.get('lang') == 'ar' else 'Admin' }} ▾
+        </button>
+        <div class="nav-dropdown-menu">
+          <a href="{{ url_for('main.admin_dashboard') }}" class="nav-dropdown-item">
+            📋 {{ 'تصاريح المغادرة' if session.get('lang') == 'ar' else 'Leave Requests' }}
+          </a>
+          <div class="nav-dropdown-divider"></div>
+          <a href="{{ url_for('cars.admin_bookings') }}" class="nav-dropdown-item">
+            🚗 {{ 'حجوزات السيارات' if session.get('lang') == 'ar' else 'Car Bookings' }}
+          </a>
+          <a href="{{ url_for('cars.admin_fleet') }}" class="nav-dropdown-item">
+            🔧 {{ 'إدارة الأسطول' if session.get('lang') == 'ar' else 'Fleet Management' }}
+          </a>
+          <a href="{{ url_for('cars.admin_reports') }}" class="nav-dropdown-item">
+            📊 {{ 'التقارير' if session.get('lang') == 'ar' else 'Reports' }}
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="nav-user">
+        <span class="nav-user-name">{{ session.user.full_name }}</span>
+        <span class="nav-user-dept">{{ session.user.department }}</span>
+      </div>
+      <div class="nav-lang-toggle">
+        <a href="{{ url_for('main.set_language', lang='en') }}"
+           class="lang-btn {% if session.get('lang', 'en') == 'en' %}active{% endif %}">EN</a>
+        <a href="{{ url_for('main.set_language', lang='ar') }}"
+           class="lang-btn {% if session.get('lang') == 'ar' %}active{% endif %}">ع</a>
+      </div>
+      <a href="{{ url_for('main.logout') }}" class="nav-link nav-logout">
+        {{ 'خروج' if session.get('lang') == 'ar' else 'Logout' }}
+      </a>
+    </div>
+  </div>
+</nav>
+{% endif %}
+<main class="main-content">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-container">
+      {% for category, message in messages %}
+      <div class="flash flash-{{ category }}">
+        {{ message }}
+        <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

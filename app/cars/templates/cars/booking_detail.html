@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}{{ booking.booking_number }} — LeavePass{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ booking.booking_number }}</h1>
+    <p class="page-subtitle">
+      <span class="badge {{ booking.status_badge_class() }}">{{ booking.status }}</span>
+    </p>
+  </div>
+  <div style="display:flex;gap:0.75rem;">
+    {% if booking.status == 'approved' %}
+    <a href="{{ url_for('cars.checkout', id=booking.id) }}" class="btn btn-primary">
+      {{ 'تسجيل الخروج' if ar else 'Check Out' }}
+    </a>
+    {% elif booking.status == 'out' %}
+    <a href="{{ url_for('cars.return_car', id=booking.id) }}" class="btn btn-outline">
+      {{ 'تسجيل العودة' if ar else 'Return Car' }}
+    </a>
+    {% endif %}
+    <a href="{{ url_for('cars.dashboard') }}" class="btn btn-ghost">
+      {{ '→ رجوع' if ar else '← Back' }}
+    </a>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <div class="detail-card">
+    <h3 class="detail-card-title">{{ 'السيارة' if ar else 'Vehicle' }}</h3>
+    {% if booking.car.plate_image %}
+    <img src="{{ booking.car.image_url() }}" alt="plate"
+         style="width:100%;border-radius:6px;margin-bottom:1rem;object-fit:cover;max-height:120px;">
+    {% endif %}
+    <div class="detail-rows">
+      <div class="detail-row">
+        <span>{{ 'رقم اللوحة' if ar else 'Plate' }}</span>
+        <span class="mono">{{ booking.car.plate_number }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'السيارة' if ar else 'Vehicle' }}</span>
+        <span>{{ booking.car.year }} {{ booking.car.make }} {{ booking.car.model }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'اللون' if ar else 'Color' }}</span>
+        <span>{{ booking.car.color_ar if ar and booking.car.color_ar else booking.car.color }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'المقاعد' if ar else 'Seats' }}</span>
+        <span>{{ booking.car.seats }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-card">
+    <h3 class="detail-card-title">{{ 'تفاصيل الرحلة' if ar else 'Trip Details' }}</h3>
+    <div class="detail-rows">
+      <div class="detail-row">
+        <span>{{ 'الوجهة' if ar else 'Destination' }}</span>
+        <span>{{ (booking.destination_ar if ar and booking.destination_ar else booking.destination) or '—' }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'الغرض' if ar else 'Purpose' }}</span>
+        <span>{{ (booking.purpose_ar if ar and booking.purpose_ar else booking.purpose) or '—' }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'المدير' if ar else 'Manager' }}</span>
+        <span>{{ booking.manager_name_ar if ar and booking.manager_name_ar else booking.manager_name }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'المغادرة المخططة' if ar else 'Planned Departure' }}</span>
+        <span>{{ booking.planned_departure.strftime('%Y/%m/%d %I:%M %p') }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'العودة المخططة' if ar else 'Planned Return' }}</span>
+        <span>{{ booking.planned_return.strftime('%Y/%m/%d %I:%M %p') }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-card">
+    <h3 class="detail-card-title">{{ 'بيانات المقياس' if ar else 'Odometer & Fuel' }}</h3>
+    <div class="detail-rows">
+      <div class="detail-row">
+        <span>{{ 'العداد عند الخروج' if ar else 'Odometer Out' }}</span>
+        <span>{{ booking.odometer_out|string + ' km' if booking.odometer_out else '—' }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'العداد عند العودة' if ar else 'Odometer In' }}</span>
+        <span>{{ booking.odometer_in|string + ' km' if booking.odometer_in else '—' }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'المسافة المقطوعة' if ar else 'Distance' }}</span>
+        <span>{{ booking.km_used()|string + ' km' if booking.km_used() else '—' }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'الوقود عند الخروج' if ar else 'Fuel Out' }}</span>
+        <span>{{ booking.fuel_out|string + '%' if booking.fuel_out is not none else '—' }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'الوقود عند العودة' if ar else 'Fuel In' }}</span>
+        <span>{{ booking.fuel_in|string + '%' if booking.fuel_in is not none else '—' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-card">
+    <h3 class="detail-card-title">{{ 'سجل الوقت' if ar else 'Timeline' }}</h3>
+    <div class="detail-rows">
+      <div class="detail-row">
+        <span>{{ 'تاريخ الطلب' if ar else 'Requested' }}</span>
+        <span>{{ booking.created_at.strftime('%Y/%m/%d %I:%M %p') }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'المغادرة الفعلية' if ar else 'Actual Departure' }}</span>
+        <span>{{ booking.actual_departure.strftime('%Y/%m/%d %I:%M %p') if booking.actual_departure else '—' }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'العودة الفعلية' if ar else 'Actual Return' }}</span>
+        <span>{{ booking.actual_return.strftime('%Y/%m/%d %I:%M %p') if booking.actual_return else '—' }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}{{ 'لوحة التحكم — LeavePass' if session.get('lang') == 'ar' else 'Dashboard — LeavePass' }}{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'طلبات المغادرة' if ar else 'My Leave Requests' }}</h1>
+    <p class="page-subtitle">{{ 'تتبع وإدارة تصاريح مغادرة المكتب' if ar else 'Track and manage your office leave passes' }}</p>
+  </div>
+  <a href="{{ url_for('main.new_leave') }}" class="btn btn-primary">
+    {{ '+ طلب جديد' if ar else '+ New Request' }}
+  </a>
+</div>
+
+{% if records %}
+<div class="table-card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>{{ 'رقم الطلب' if ar else 'Request No.' }}</th>
+        <th>{{ 'الوجهة' if ar else 'Destination' }}</th>
+        <th>{{ 'تاريخ المغادرة' if ar else 'Departure' }}</th>
+        <th>{{ 'تاريخ العودة' if ar else 'Return' }}</th>
+        <th>{{ 'المدير' if ar else 'Manager' }}</th>
+        <th>{{ 'الحالة' if ar else 'Status' }}</th>
+        <th>{{ 'الإجراءات' if ar else 'Actions' }}</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in records %}
+    <tr>
+      <td><span class="mono">{{ r.request_number }}</span></td>
+      <td>{{ (r.destination_ar if ar and r.destination_ar else r.destination) or '—' }}</td>
+      <td>{{ r.departure_datetime.strftime('%Y/%m/%d %I:%M %p') if ar else r.departure_datetime.strftime('%b %d, %Y %I:%M %p') }}</td>
+      <td>{{ r.return_datetime.strftime('%Y/%m/%d %I:%M %p') if ar else r.return_datetime.strftime('%b %d, %Y %I:%M %p') }}</td>
+      <td>{{ (r.manager_name_ar if ar and r.manager_name_ar else r.manager_name) }}</td>
+      <td><span class="badge {{ r.status_badge_class() }}">{{ r.status }}</span></td>
+      <td class="actions-cell">
+        <a href="{{ url_for('main.print_slip', id=r.id) }}" class="btn btn-sm btn-outline">
+          🖨 {{ 'طباعة' if ar else 'Print' }}
+        </a>
+        {% if r.is_editable() %}
+        <a href="{{ url_for('main.edit_leave', id=r.id) }}" class="btn btn-sm btn-ghost">
+          ✏ {{ 'تعديل' if ar else 'Edit' }}
+        </a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">📋</div>
+  <h3>{{ 'لا توجد طلبات بعد' if ar else 'No leave requests yet' }}</h3>
+  <p>{{ 'عند الحاجة لمغادرة المكتب، أنشئ تصريح مغادرة هنا.' if ar else 'When you need to leave the office, create a leave pass here.' }}</p>
+  <a href="{{ url_for('main.new_leave') }}" class="btn btn-primary">
+    {{ 'إنشاء أول طلب' if ar else 'Create your first request' }}
+  </a>
+</div>
+{% endif %}
+{% endblock %}

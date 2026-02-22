@@ -1,0 +1,172 @@
+<!-- Language Toggle -->
+<div class="lang-toggle-wrap">
+  <span class="lang-toggle-label">Form Language</span>
+  <div class="lang-toggle">
+    <button type="button" class="lang-btn active" id="btn-en" onclick="setLanguage('en')">English</button>
+    <button type="button" class="lang-btn" id="btn-ar" onclick="setLanguage('ar')">عربي</button>
+  </div>
+  <input type="hidden" name="active_language" id="active_language" value="{{ (form.active_language if form else (lr.active_language if lr else 'en')) }}">
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SHARED: MANAGER DROPDOWN (both languages)
+═══════════════════════════════════════════════ -->
+<div class="form-group">
+  <label class="form-label" for="manager_name">
+    <span class="lbl-en">Approving Manager</span>
+    <span class="lbl-ar" style="display:none;">المدير المعتمد</span>
+    <span class="required">*</span>
+  </label>
+  <select class="form-input form-select" id="manager_name" name="manager_name" required>
+    <option value="" disabled selected>— Select / اختر المدير —</option>
+    {% for m in managers %}
+    <option value="{{ m.full_name }}"
+      {% if (form and form.get('manager_name') == m.full_name) or (lr and lr.manager_name == m.full_name) %}selected{% endif %}>
+      {{ m.full_name }}{% if m.department %} ({{ m.department }}){% endif %}
+    </option>
+    {% endfor %}
+  </select>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     ENGLISH SECTION
+═══════════════════════════════════════════════ -->
+<div id="section-en" class="lang-section">
+  <div class="lang-section-header en-header">English Fields</div>
+
+  <div class="form-group">
+    <label class="form-label" for="destination">Destination / Location</label>
+    <input class="form-input" type="text" id="destination" name="destination"
+      placeholder="e.g. City Hall, Client Office"
+      value="{{ form.destination if form else (lr.destination if lr else '') }}">
+  </div>
+
+  <div class="form-group">
+    <label class="form-label" for="reason">Reason for Leaving <span class="required">*</span></label>
+    <textarea class="form-input form-textarea" id="reason" name="reason"
+      placeholder="Briefly describe the purpose of your leave...">{{ form.reason if form else (lr.reason if lr else '') }}</textarea>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label" for="employee_name_en_display">Employee Name</label>
+    <input class="form-input" type="text" id="employee_name_en_display"
+      value="{{ user.full_name if user else (lr.employee_name if lr else '') }}" disabled>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label" for="employee_dept_en_display">Department</label>
+    <input class="form-input" type="text" id="employee_dept_en_display"
+      value="{{ user.department if user else (lr.employee_department if lr else '') }}" disabled>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     ARABIC SECTION
+═══════════════════════════════════════════════ -->
+<div id="section-ar" class="lang-section" dir="rtl">
+  <div class="lang-section-header ar-header">الحقول العربية</div>
+
+  <div class="form-group">
+    <label class="form-label" for="destination_ar">الوجهة / الموقع</label>
+    <input class="form-input rtl-input" type="text" id="destination_ar" name="destination_ar"
+      placeholder="مثال: مبنى البلدية، مكتب العميل"
+      value="{{ form.destination_ar if form else (lr.destination_ar if lr else '') }}">
+  </div>
+
+  <div class="form-group">
+    <label class="form-label" for="reason_ar">سبب المغادرة <span class="required">*</span></label>
+    <textarea class="form-input form-textarea rtl-input" id="reason_ar" name="reason_ar"
+      placeholder="اذكر سبب مغادرة المكتب...">{{ form.reason_ar if form else (lr.reason_ar if lr else '') }}</textarea>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label" for="manager_name_ar">اسم المدير بالعربية</label>
+    <input class="form-input rtl-input" type="text" id="manager_name_ar" name="manager_name_ar"
+      placeholder="اكتب اسم المدير بالعربية (اختياري)"
+      value="{{ form.manager_name_ar if form else (lr.manager_name_ar if lr else '') }}">
+    <small style="color:var(--text-muted);font-size:0.78rem;">
+      اختياري — إذا تركته فارغاً سيُستخدم الاسم الإنجليزي على التصريح
+    </small>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label" for="employee_name_ar">اسم الموظف بالعربية</label>
+    <input class="form-input rtl-input" type="text" id="employee_name_ar" name="employee_name_ar"
+      placeholder="الاسم الكامل بالعربية"
+      value="{{ form.employee_name_ar if form else (lr.employee_name_ar if lr else '') }}">
+  </div>
+
+  <div class="form-group">
+    <label class="form-label" for="employee_department_ar">القسم بالعربية</label>
+    <input class="form-input rtl-input" type="text" id="employee_department_ar" name="employee_department_ar"
+      placeholder="اسم القسم بالعربية"
+      value="{{ form.employee_department_ar if form else (lr.employee_department_ar if lr else '') }}">
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SHARED: DATES
+═══════════════════════════════════════════════ -->
+<div class="lang-section-header shared-header">
+  <span id="dates-label-en">Dates</span>
+  <span id="dates-label-ar" style="display:none;">التواريخ</span>
+</div>
+<div class="form-row-2">
+  <div class="form-group">
+    <label class="form-label" for="departure_datetime">
+      <span class="lbl-en">Departure Date &amp; Time</span>
+      <span class="lbl-ar" style="display:none;">تاريخ ووقت المغادرة</span>
+      <span class="required">*</span>
+    </label>
+    <input class="form-input" type="datetime-local" id="departure_datetime" name="departure_datetime"
+      value="{{ form.departure_datetime if form else (lr.departure_datetime.strftime('%Y-%m-%dT%H:%M') if lr else '') }}"
+      required>
+  </div>
+  <div class="form-group">
+    <label class="form-label" for="return_datetime">
+      <span class="lbl-en">Expected Return Date &amp; Time</span>
+      <span class="lbl-ar" style="display:none;">تاريخ ووقت العودة المتوقع</span>
+      <span class="required">*</span>
+    </label>
+    <input class="form-input" type="datetime-local" id="return_datetime" name="return_datetime"
+      value="{{ form.return_datetime if form else (lr.return_datetime.strftime('%Y-%m-%dT%H:%M') if lr else '') }}"
+      required>
+  </div>
+</div>
+
+<script>
+function setLanguage(lang) {
+  document.getElementById('active_language').value = lang;
+
+  // Toggle sections
+  document.getElementById('section-en').classList.toggle('section-disabled', lang !== 'en');
+  document.getElementById('section-ar').classList.toggle('section-disabled', lang !== 'ar');
+
+  // Toggle buttons
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-ar').classList.toggle('active', lang === 'ar');
+
+  // Enable/disable inputs inside sections
+  document.querySelectorAll('#section-en input:not([disabled]), #section-en textarea').forEach(el => {
+    el.disabled = lang !== 'en';
+  });
+  document.querySelectorAll('#section-ar input, #section-ar textarea').forEach(el => {
+    el.disabled = lang !== 'ar';
+  });
+
+  // Toggle date labels
+  document.querySelectorAll('.lbl-en').forEach(el => el.style.display = lang === 'en' ? '' : 'none');
+  document.querySelectorAll('.lbl-ar').forEach(el => el.style.display = lang === 'ar' ? '' : 'none');
+  document.getElementById('dates-label-en').style.display = lang === 'en' ? '' : 'none';
+  document.getElementById('dates-label-ar').style.display = lang === 'ar' ? '' : 'none';
+
+  // RTL for form card
+  document.querySelector('.form-card').style.direction = lang === 'ar' ? 'rtl' : 'ltr';
+}
+
+// Init on page load
+(function() {
+  const saved = document.getElementById('active_language').value || 'en';
+  setLanguage(saved);
+})();
+</script>

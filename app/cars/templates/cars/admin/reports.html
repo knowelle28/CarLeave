@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block title %}Vehicle Reports — LeavePass{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'تقارير السيارات' if ar else 'Vehicle Reports' }}</h1>
+    <p class="page-subtitle">{{ 'تقرير مفصل حسب السيارة أو الموظف' if ar else 'Detailed report by vehicle or employee' }}</p>
+  </div>
+  {% if bookings %}
+  <button class="btn btn-ghost" onclick="window.print()">
+    🖨 {{ 'طباعة' if ar else 'Print' }}
+  </button>
+  {% endif %}
+</div>
+
+<!-- Filter form -->
+<div class="form-card report-filter-card no-print">
+  <form method="GET" action="{{ url_for('cars.admin_reports') }}" id="reportForm">
+
+    <!-- Report type toggle -->
+    <div class="form-group">
+      <label class="form-label">{{ 'نوع التقرير' if ar else 'Report Type' }}</label>
+      <div class="report-type-toggle">
+        <button type="button"
+                class="report-type-btn {% if report_type == 'car' %}active{% endif %}"
+                onclick="setReportType('car')">
+          🚗 {{ 'حسب السيارة' if ar else 'By Vehicle' }}
+        </button>
+        <button type="button"
+                class="report-type-btn {% if report_type == 'user' %}active{% endif %}"
+                onclick="setReportType('user')">
+          👤 {{ 'حسب الموظف' if ar else 'By Employee' }}
+        </button>
+      </div>
+      <input type="hidden" name="type" id="report_type_input" value="{{ report_type }}">
+    </div>
+
+    <div class="report-filter-grid">
+
+      <!-- Car selector -->
+      <div class="form-group" id="car-selector-wrap"
+           style="display:{{ 'block' if report_type == 'car' else 'none' }};">
+        <label class="form-label">{{ 'السيارة' if ar else 'Vehicle' }}</label>
+        <select class="form-input form-select" name="selected_id" id="car_select">
+          <option value="all" {% if selected_id == 'all' %}selected{% endif %}>
+            — {{ 'كل السيارات' if ar else 'All Vehicles' }} —
+          </option>
+          {% for car in cars %}
+          <option value="{{ car.id }}"
+            {% if report_type == 'car' and selected_id == car.id|string %}selected{% endif %}>
+            {{ car.plate_number }} — {{ car.year }} {{ car.make }} {{ car.model }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- User selector -->
+      <div class="form-group" id="user-selector-wrap"
+           style="display:{{ 'block' if report_type == 'user' else 'none' }};">
+        <label class="form-label">{{ 'الموظف' if ar else 'Employee' }}</label>
+        <select class="form-input form-select" name="selected_id" id="user_select">
+          <option value="all" {% if selected_id == 'all' %}selected{% endif %}>
+            — {{ 'كل الموظفين' if ar else 'All Employees' }} —
+          </option>
+          {% for u in user_rows %}
+          <option value="{{ u.employee_username }}"
+            {% if report_type == 'user' and selected_id == u.employee_username %}selected{% endif %}>
+            {{ u.employee_name }}
+            {% if u.employee_department %} — {{ u.employee_department }}{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Date from -->
+      <div class="form-group">
+        <label class="form-label">
+          {{ 'من تاريخ' if ar else 'From Date' }}
+          <small style="color:var(--text-faint);font-weight:400;">
+            ({{ 'اتركه فارغاً للبداية' if ar else 'leave blank for earliest' }})
+          </small>
+        </label>
+        <input class="form-input" type="date" name="date_from" value="{{ date_from }}">
+      </div>
+
+      <!-- Date to -->
+      <div class="form-group">
+        <label class="form-label">
+          {{ 'إلى تاريخ' if ar else 'To Date' }}
+          <small style="color:var(--text-faint);font-weight:400;">
+            ({{ 'اتركه فارغاً لليوم' if ar else 'leave blank for today' }})
+          </small>
+        </label>
+        <input class="form-input" type="date" name="date_to" value="{{ date_to }}">
+      </div>
+
+    </div>
+
+    <div class="form-actions" style="margin-top:1rem;">
+      <button type="submit" class="btn btn-primary">
+        🔍 {{ 'إنشاء التقرير' if ar else 'Generate Report' }}
+      </button>
+      <a href="{{ url_for('cars.admin_reports') }}" class="btn btn-ghost">
+        ✕ {{ 'مسح' if ar else 'Clear' }}
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Results -->
+<div class="report-results">
+
+  <!-- Summary header -->
+  <div class="report-header-bar">
+    <div class="report-header-title">
+      {% if report_type == 'car' %}🚗{% else %}👤{% endif %}
+      {{ report_title }}
+      {% if date_from or date_to %}
+      <span style="font-weight:400;font-size:0.85rem;color:var(--text-muted);margin-left:0.75rem;">
+        {{ date_from or '…' }} → {{ date_to or 'today' }}
+      </span>
+      {% endif %}
+    </div>
+    <div class="report-header-meta">
+      {{ bookings|length }} {{ 'سجل' if ar else 'record(s)' }}
+    </div>
+  </div>
+
+  <!-- Stats strip -->
+  <div class="report-stats">
+    <div class="report-stat">
+      <span class="report-stat-val">{{ bookings|length }}</span>
+      <span class="report-stat-label">{{ 'إجمالي' if ar else 'Total' }}</span>
+    </div>
+    <div class="report-stat">
+      <span class="report-stat-val">{{ bookings|selectattr('status','equalto','returned')|list|length }}</span>
+      <span class="report-stat-label">{{ 'مكتملة' if ar else 'Completed' }}</span>
+    </div>
+    <div class="report-stat">
+      <span class="report-stat-val">{{ bookings|selectattr('status','equalto','borrowed')|list|length }}</span>
+      <span class="report-stat-label">{{ 'حالياً خارج' if ar else 'Currently Out' }}</span>
+    </div>
+    <div class="report-stat">
+      <span class="report-stat-val">{{ bookings|selectattr('status','equalto','pending')|list|length }}</span>
+      <span class="report-stat-label">{{ 'معلقة' if ar else 'Pending' }}</span>
+    </div>
+    <div class="report-stat">
+      <span class="report-stat-val">
+        {{ bookings|selectattr('return_note')|list|length }}
+      </span>
+      <span class="report-stat-label">{{ 'مع ملاحظات' if ar else 'With Notes' }}</span>
+    </div>
+  </div>
+
+  {% if bookings %}
+  <div class="booking-cards" style="margin-top:1.25rem;">
+    {% for b in bookings %}
+    <div class="booking-admin-card status-border-{{ b.status }}">
+
+      <div class="bac-header">
+        <div class="bac-left">
+          <span class="mono bac-number">{{ b.booking_number }}</span>
+          <span class="status-badge {{ b.status_badge_class() }}">
+            {% if b.status == 'pending' %}{{ 'معلق' if ar else 'Pending' }}
+            {% elif b.status == 'borrowed' %}{{ 'مستعار' if ar else 'Borrowed' }}
+            {% elif b.status == 'returned' %}{{ 'مُعاد' if ar else 'Returned' }}
+            {% elif b.status == 'archived' %}{{ 'مؤرشف' if ar else 'Archived' }}
+            {% else %}{{ b.status }}{% endif %}
+          </span>
+        </div>
+        <div class="bac-right">{{ b.planned_departure.strftime('%d %b %Y') }}</div>
+      </div>
+
+      <div class="bac-body">
+
+        {% if report_type == 'car' or selected_id == 'all' %}
+        <div class="bac-section">
+          <div class="bac-section-label">{{ 'الموظف' if ar else 'Employee' }}</div>
+          <div class="bac-section-value">
+            {{ b.employee_name }}
+            <span style="color:var(--text-muted);font-size:0.8rem;margin-left:0.4rem;">
+              {{ b.employee_department }}
+            </span>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if report_type == 'user' or selected_id == 'all' %}
+        <div class="bac-section">
+          <div class="bac-section-label">{{ 'السيارة' if ar else 'Vehicle' }}</div>
+          <div class="bac-section-value">
+            <span class="mono" style="font-weight:700;">{{ b.car.plate_number }}</span>
+            <span style="color:var(--text-muted);margin-left:0.5rem;">
+              {{ b.car.year }} {{ b.car.make }} {{ b.car.model }}
+            </span>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="bac-section">
+          <div class="bac-section-label">{{ 'المدير' if ar else 'Manager' }}</div>
+          <div class="bac-section-value">{{ b.manager_name or '—' }}</div>
+        </div>
+
+        <div class="bac-section">
+          <div class="bac-section-label">{{ 'الوجهة' if ar else 'Destination' }}</div>
+          <div class="bac-section-value">{{ b.destination or b.destination_ar or '—' }}</div>
+        </div>
+
+        <div class="bac-section">
+          <div class="bac-section-label">{{ 'الغرض' if ar else 'Purpose' }}</div>
+          <div class="bac-section-value" style="color:var(--text-muted);font-size:0.85rem;">
+            {{ b.purpose or b.purpose_ar or '—' }}
+          </div>
+        </div>
+
+        <div class="bac-timeline">
+          <div class="bac-timeline-item">
+            <span class="bac-tl-label">{{ 'موعد المغادرة' if ar else 'Planned Departure' }}</span>
+            <span class="bac-tl-value">{{ b.planned_departure.strftime('%d %b %Y, %I:%M %p') }}</span>
+          </div>
+          {% if b.actual_departure %}
+          <div class="bac-timeline-item bac-tl-actual">
+            <span class="bac-tl-label">{{ 'تسليم المفتاح' if ar else 'Key Handed Over' }}</span>
+            <span class="bac-tl-value">{{ b.actual_departure.strftime('%d %b %Y, %I:%M %p') }}</span>
+          </div>
+          {% endif %}
+          {% if b.actual_return %}
+          <div class="bac-timeline-item bac-tl-returned">
+            <span class="bac-tl-label">{{ 'تاريخ الإرجاع' if ar else 'Returned At' }}</span>
+            <span class="bac-tl-value">{{ b.actual_return.strftime('%d %b %Y, %I:%M %p') }}</span>
+          </div>
+          {% endif %}
+          {% if b.actual_departure and b.actual_return %}
+          <div class="bac-timeline-item">
+            <span class="bac-tl-label">{{ 'المدة' if ar else 'Duration' }}</span>
+            <span class="bac-tl-value">
+              {% set diff = b.actual_return - b.actual_departure %}
+              {% set hours = (diff.total_seconds() // 3600)|int %}
+              {% set mins  = ((diff.total_seconds() % 3600) // 60)|int %}
+              {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
+            </span>
+          </div>
+          {% endif %}
+          {% if b.odometer_return %}
+          <div class="bac-timeline-item">
+            <span class="bac-tl-label">{{ 'العداد عند الإرجاع' if ar else 'Odometer on Return' }}</span>
+            <span class="bac-tl-value mono">{{ b.odometer_return | int }} km</span>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if b.return_note %}
+        <div style="grid-column:1/-1;">
+          <div class="car-detail-return-note" style="margin-top:0;">
+            <span class="car-detail-note-label">
+              ⚠️ {{ 'ملاحظة السائق' if ar else 'Driver Return Note' }}
+            </span>
+            <span>{{ b.return_note }}</span>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty-state" style="border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+    <div class="empty-icon">📋</div>
+    <p>{{ 'لا توجد سجلات لهذا الاختيار.' if ar else 'No records found for this selection.' }}</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function setReportType(type) {
+  document.getElementById('report_type_input').value = type;
+  document.querySelectorAll('.report-type-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('car-selector-wrap').style.display  = type === 'car'  ? 'block' : 'none';
+  document.getElementById('user-selector-wrap').style.display = type === 'user' ? 'block' : 'none';
+}
+</script>
+
+<style>
+@media print {
+  .no-print, nav, .page-header button { display:none !important; }
+  .booking-admin-card { break-inside: avoid; page-break-inside: avoid; }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ 'إدارة الأسطول' if session.get('lang') == 'ar' else 'Fleet Management — LeavePass' }}{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'إدارة الأسطول' if ar else 'Fleet Management' }}</h1>
+    <p class="page-subtitle">{{ 'إضافة وتعديل سيارات الشركة' if ar else 'Add and manage company vehicles' }}</p>
+  </div>
+  <div style="display:flex;gap:0.75rem;">
+    <a href="{{ url_for('cars.portal') }}" class="btn btn-ghost">
+      {{ '→ البوابة' if ar else '← Portal' }}
+    </a>
+    <a href="{{ url_for('cars.admin_add_car') }}" class="btn btn-primary">
+      {{ '+ إضافة سيارة' if ar else '+ Add Vehicle' }}
+    </a>
+  </div>
+</div>
+
+{% if cars %}
+<div class="fleet-grid">
+  {% for car in cars %}
+  <div class="fleet-card {% if not car.is_active %}fleet-card-inactive{% endif %}">
+    <div class="fleet-card-img">
+      {% if car.plate_image %}
+      <img src="{{ car.image_url() }}" alt="{{ car.plate_number }}">
+      {% else %}
+      <div class="fleet-no-img">🚗</div>
+      {% endif %}
+    </div>
+    <div class="fleet-card-body">
+      <div class="fleet-plate mono">{{ car.plate_number }}</div>
+      <div class="fleet-name">{{ car.year }} {{ car.make }} {{ car.model }}</div>
+      <div class="fleet-meta">
+        <span>{{ car.color_ar if ar and car.color_ar else car.color }}</span>
+        &nbsp;·&nbsp;
+        <span>{{ car.seats }} {{ 'مقاعد' if ar else 'seats' }}</span>
+      </div>
+      <div class="fleet-status">
+        {% if car.is_active %}
+        <span class="badge badge-approved">{{ 'نشط' if ar else 'Active' }}</span>
+        {% else %}
+        <span class="badge badge-archived">{{ 'غير نشط' if ar else 'Inactive' }}</span>
+        {% endif %}
+        <span class="badge badge-draft">
+          {{ car.bookings|selectattr('status','in',['out'])|list|length }}
+          {{ ' خارج' if ar else ' out' }}
+        </span>
+      </div>
+    </div>
+    <div class="fleet-card-actions">
+      <a href="{{ url_for('cars.admin_edit_car', id=car.id) }}"
+         class="btn btn-sm btn-outline">
+        ✏ {{ 'تعديل' if ar else 'Edit' }}
+      </a>
+      <form method="POST"
+            action="{{ url_for('cars.admin_toggle_car', id=car.id) }}"
+            style="display:inline;">
+        <button type="submit" class="btn btn-sm btn-ghost">
+          {% if car.is_active %}
+          {{ 'تعطيل' if ar else 'Deactivate' }}
+          {% else %}
+          {{ 'تفعيل' if ar else 'Activate' }}
+          {% endif %}
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">🚗</div>
+  <h3>{{ 'لا توجد سيارات' if ar else 'No vehicles yet' }}</h3>
+  <p>{{ 'أضف سيارات الشركة لبدء الحجز.' if ar else 'Add company vehicles to start taking bookings.' }}</p>
+  <a href="{{ url_for('cars.admin_add_car') }}" class="btn btn-primary">
+    {{ '+ إضافة سيارة' if ar else '+ Add Vehicle' }}
+  </a>
+</div>
+{% endif %}
+{% endblock %}

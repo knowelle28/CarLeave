@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ 'البوابة — LeavePass' if session.get('lang') == 'ar' else 'Portal — LeavePass' }}{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+
+<div class="portal-header">
+  <h1 class="page-title">
+    {{ 'مرحباً، ' + session.user.full_name if ar else 'Welcome, ' + session.user.full_name }}
+  </h1>
+  <p class="page-subtitle">
+    {{ 'اختر التطبيق الذي تريد استخدامه' if ar else 'Select an application to get started' }}
+  </p>
+</div>
+
+<div class="portal-grid">
+
+  <a href="{{ url_for('main.dashboard') }}" class="portal-card">
+    <div class="portal-card-icon leave-icon">📋</div>
+    <div class="portal-card-body">
+      <h2 class="portal-card-title">
+        {{ 'تصريح المغادرة' if ar else 'Leave Pass' }}
+      </h2>
+      <p class="portal-card-desc">
+        {{ 'تقديم طلب مغادرة المكتب والحصول على موافقة المدير' if ar else 'Submit office leave requests and get manager approval' }}
+      </p>
+    </div>
+    <div class="portal-card-arrow">{{ '←' if ar else '→' }}</div>
+  </a>
+
+  <a href="{{ url_for('cars.dashboard') }}" class="portal-card">
+    <div class="portal-card-icon car-icon">🚗</div>
+    <div class="portal-card-body">
+      <h2 class="portal-card-title">
+        {{ 'حجز السيارات' if ar else 'Car Booking' }}
+      </h2>
+      <p class="portal-card-desc">
+        {{ 'حجز سيارة من أسطول الشركة للمهام الرسمية' if ar else 'Book a company vehicle for official trips' }}
+      </p>
+    </div>
+    <div class="portal-card-arrow">{{ '←' if ar else '→' }}</div>
+  </a>
+
+</div>
+
+{% if session.user.is_admin %}
+<div class="portal-admin-section">
+  <p class="portal-admin-label">
+    {{ 'لوحات الإدارة' if ar else 'Admin Panels' }}
+  </p>
+  <div class="portal-admin-links">
+    <a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-outline btn-sm">
+      📋 {{ 'إدارة تصاريح المغادرة' if ar else 'Leave Pass Admin' }}
+    </a>
+    <a href="{{ url_for('cars.admin_bookings') }}" class="btn btn-outline btn-sm">
+      🚗 {{ 'إدارة حجوزات السيارات' if ar else 'Car Bookings Admin' }}
+    </a>
+    <a href="{{ url_for('cars.admin_fleet') }}" class="btn btn-outline btn-sm">
+      🔧 {{ 'إدارة الأسطول' if ar else 'Manage Fleet' }}
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

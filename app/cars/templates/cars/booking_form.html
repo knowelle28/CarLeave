@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+{% block title %}{{ 'حجز جديد' if session.get('lang') == 'ar' else 'New Car Booking — LeavePass' }}<script src="{{ url_for('static', filename='js/booking_validation.js') }}"></script>
+{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'حجز سيارة جديد' if ar else 'New Car Booking' }}</h1>
+    <p class="page-subtitle">{{ 'اختر السيارة وأدخل تفاصيل الرحلة' if ar else 'Select a vehicle and enter trip details' }}</p>
+  </div>
+  <a href="{{ url_for('cars.dashboard') }}" class="btn btn-ghost">
+    {{ '→ رجوع' if ar else '← Back' }}
+  </a>
+</div>
+
+<div class="form-card" style="max-width:900px;">
+  <div class="form-card-info">
+    <div class="info-row">
+      <span class="info-label">{{ 'الموظف' if ar else 'Employee' }}</span>
+      <span class="info-value">{{ user.full_name }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">{{ 'القسم' if ar else 'Department' }}</span>
+      <span class="info-value">{{ user.department }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">{{ 'رقم الموظف' if ar else 'Employee No.' }}</span>
+      <span class="info-value mono">{{ user.employee_number }}</span>
+    </div>
+  </div>
+
+  <div class="car-legend">
+    <span class="car-legend-item"><span class="car-legend-dot dot-free"></span>{{ 'متاح' if ar else 'Available' }}</span>
+    <span class="car-legend-item"><span class="car-legend-dot dot-pending"></span>{{ 'معلق' if ar else 'Pending' }}</span>
+    <span class="car-legend-item"><span class="car-legend-dot dot-out"></span>{{ 'مستعار' if ar else 'Borrowed' }}</span>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">{{ 'اختر السيارة' if ar else 'Select Vehicle' }} <span class="required">*</span></label>
+    <div class="car-selector-grid" id="carSelectorGrid">
+      {% for car in all_cars %}
+        {% set state = car_states.get(car.id, {}) %}
+        {% set status = state.get('status', 'free') %}
+        {% set borrower = state.get('borrower', '') %}
+        {% set last_borrower = state.get('last_borrower', '') %}
+        {% set is_blocked = status == 'borrowed' %}
+        <label class="car-selector-card car-state-{{ status }}"
+               for="car_{{ car.id }}"
+               {% if not is_blocked %}onclick="showCarDetail({{ car.id }})"{% endif %}>
+          <input type="radio" name="car_id_radio" id="car_{{ car.id }}"
+                 value="{{ car.id }}"
+                 {% if is_blocked %}disabled{% endif %}>
+          <div class="car-selector-inner">
+            <div class="car-selector-img">
+              {% if car.plate_image %}<img src="{{ car.image_url() }}" alt="{{ car.plate_number }}">
+              {% else %}<div class="car-no-img">🚗</div>{% endif %}
+            </div>
+            <div class="car-selector-info">
+              <div class="car-selector-plate mono">{{ car.plate_number }}</div>
+              <div class="car-selector-name">{{ car.year }} {{ car.make }} {{ car.model }}</div>
+              <div class="car-selector-meta">
+                {{ car.color_ar if ar and car.color_ar else car.color }}
+                &nbsp;·&nbsp; {{ car.seats }} {{ 'مقاعد' if ar else 'seats' }}
+              </div>
+              {% if status == 'borrowed' %}
+              <div class="car-status-badge badge-out-pill">🚗 {{ 'مستعار: ' if ar else 'Borrowed: ' }}<strong>{{ borrower }}</strong></div>
+              {% elif status == 'pending' %}
+              <div class="car-status-badge badge-pending-pill">⏳ {{ 'محجوز: ' if ar else 'Reserved: ' }}<strong>{{ borrower }}</strong></div>
+              {% else %}
+              <div class="car-status-badge badge-free-pill">✅ {{ 'متاح' if ar else 'Available' }}{% if last_borrower %} · {{ 'آخر مستخدم: ' if ar else 'Last: ' }}{{ last_borrower }}{% endif %}</div>
+              {% endif %}
+            </div>
+            {% if not is_blocked %}<div class="car-selector-check">✓</div>
+            {% else %}<div class="car-blocked-icon">🔒</div>{% endif %}
+          </div>
+        </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Detail panel -->
+  <div id="carDetailPanel" class="car-detail-panel" style="display:none;">
+    <div class="car-detail-inner">
+      <div class="car-detail-img-wrap">
+        <img id="carDetailImg" src="" alt="plate" style="display:none;">
+        <div id="carDetailNoImg" class="car-detail-no-img">🚗</div>
+      </div>
+      <div class="car-detail-info">
+        <div class="car-detail-plate mono" id="carDetailPlate"></div>
+        <div class="car-detail-title" id="carDetailTitle"></div>
+        <div class="car-detail-grid">
+          <div class="car-detail-item">
+            <span class="car-detail-label">{{ 'الشركة' if ar else 'Make' }}</span>
+            <span class="car-detail-value" id="carDetailMake"></span>
+          </div>
+          <div class="car-detail-item">
+            <span class="car-detail-label">{{ 'الموديل' if ar else 'Model' }}</span>
+            <span class="car-detail-value" id="carDetailModel"></span>
+          </div>
+          <div class="car-detail-item">
+            <span class="car-detail-label">{{ 'السنة' if ar else 'Year' }}</span>
+            <span class="car-detail-value" id="carDetailYear"></span>
+          </div>
+          <div class="car-detail-item">
+            <span class="car-detail-label">{{ 'اللون' if ar else 'Color' }}</span>
+            <span class="car-detail-value" id="carDetailColor"></span>
+          </div>
+          <div class="car-detail-item">
+            <span class="car-detail-label">{{ 'المقاعد' if ar else 'Seats' }}</span>
+            <span class="car-detail-value" id="carDetailSeats"></span>
+          </div>
+          <div class="car-detail-item">
+            <span class="car-detail-label">{{ 'العداد الحالي' if ar else 'Mileage' }}</span>
+            <span class="car-detail-value" id="carDetailMileage"></span>
+          </div>
+          <div class="car-detail-item">
+            <span class="car-detail-label">{{ 'آخر صيانة كبرى' if ar else 'Last Major Service' }}</span>
+            <span class="car-detail-value" id="carDetailMajor"></span>
+          </div>
+          <div class="car-detail-item">
+            <span class="car-detail-label">{{ 'آخر صيانة صغرى' if ar else 'Last Minor Service' }}</span>
+            <span class="car-detail-value" id="carDetailMinor"></span>
+          </div>
+          <div class="car-detail-item">
+            <span class="car-detail-label">{{ 'آخر مستخدم' if ar else 'Last Used By' }}</span>
+            <span class="car-detail-value" id="carDetailLastUser"></span>
+          </div>
+
+        </div>
+        <div id="carDetailNote" class="car-detail-return-note" style="display:none;">
+          <span class="car-detail-note-label">{{ '⚠️ ملاحظة آخر سائق' if ar else '⚠️ Last Driver Note' }}</span>
+          <span id="carDetailNoteText"></span>
+        </div>
+        <div id="carDetailStatus" class="car-detail-status-note" style="display:none;margin-top:0.5rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('cars.new_booking') }}" id="bookingForm">
+    <input type="hidden" name="car_id" id="car_id_input" value="">
+    <input type="hidden" name="active_language" id="active_language" value="en">
+    <input type="hidden" name="ui_lang" value="{{ session.get('lang', 'en') }}">
+
+    {# Form language synced automatically from navbar toggle #}
+
+    <div id="section-en" class="lang-section">
+      <div class="lang-section-header en-header">English Fields</div>
+      <div class="form-group">
+        <label class="form-label">Destination <span class="required">*</span></label>
+        <input class="form-input" type="text" name="destination" placeholder="e.g. Ministry of Finance, Airport">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Purpose of Trip <span class="required">*</span></label>
+        <textarea class="form-input form-textarea" name="purpose" placeholder="Briefly describe the purpose..."></textarea>
+      </div>
+    </div>
+
+    <div id="section-ar" class="lang-section" dir="rtl">
+      <div class="lang-section-header ar-header">الحقول العربية</div>
+      <div class="form-group">
+        <label class="form-label">الوجهة <span class="required">*</span></label>
+        <input class="form-input rtl-input" type="text" name="destination_ar" placeholder="مثال: وزارة المالية، المطار">
+      </div>
+      <div class="form-group">
+        <label class="form-label">الغرض من الرحلة <span class="required">*</span></label>
+        <textarea class="form-input form-textarea rtl-input" name="purpose_ar" placeholder="اذكر الغرض من هذه الرحلة..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">اسم الموظف بالعربية</label>
+        <input class="form-input rtl-input" type="text" name="employee_name_ar" placeholder="الاسم الكامل بالعربية">
+      </div>
+      <div class="form-group">
+        <label class="form-label">القسم بالعربية</label>
+        <input class="form-input rtl-input" type="text" name="employee_department_ar" placeholder="اسم القسم بالعربية">
+      </div>
+    </div>
+
+    <div class="lang-section-header shared-header">
+      <span id="dates-label-en">Manager &amp; Departure</span>
+      <span id="dates-label-ar" style="display:none;">المدير وتاريخ المغادرة</span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">
+        <span class="lbl-en">Approving Manager</span>
+        <span class="lbl-ar" style="display:none;">المدير المعتمد</span>
+        <span class="required">*</span>
+      </label>
+      <select class="form-input form-select" name="manager_name">
+        <option value="" disabled selected>— Select / اختر المدير —</option>
+        {% for m in managers %}
+        <option value="{{ m.full_name }}">{{ m.full_name }}{% if m.department %} ({{ m.department }}){% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">
+        <span class="lbl-en">Manager Name in Arabic (optional)</span>
+        <span class="lbl-ar" style="display:none;">اسم المدير بالعربية (اختياري)</span>
+      </label>
+      <input class="form-input" type="text" name="manager_name_ar" placeholder="اسم المدير بالعربية">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">
+        <span class="lbl-en">Departure Date &amp; Time</span>
+        <span class="lbl-ar" style="display:none;">تاريخ ووقت المغادرة</span>
+        <span class="required">*</span>
+      </label>
+      <input class="form-input" type="datetime-local" name="planned_departure" id="planned_departure">
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{{ 'تقديم الحجز' if ar else 'Submit Booking' }}</button>
+    </div>
+  </form>
+</div>
+
+<script>
+const CAR_DATA = {
+  {% for car in all_cars %}
+  {% set state = car_states.get(car.id, {'status':'free','borrower':'','last_borrower':'','last_borrowed_date':'','last_return_note':''}) %}
+  {{ car.id }}: {
+    plate:        "{{ car.plate_number }}",
+    plateAr:      "{{ car.plate_number_ar }}",
+    make:         "{{ car.make }}",
+    model:        "{{ car.model }}",
+    year:         "{{ car.year }}",
+    color:        "{{ car.color }}",
+    colorAr:      "{{ car.color_ar }}",
+    seats:        "{{ car.seats }}",
+    image:        "{{ car.image_url() if car.plate_image else '' }}",
+    mileage:      "{{ car.current_mileage if car.current_mileage else 0 }}",
+    majorService: "{{ car.last_major_maintenance.strftime('%b %d, %Y') if car.last_major_maintenance else '' }}",
+    minorService: "{{ car.last_minor_maintenance.strftime('%b %d, %Y') if car.last_minor_maintenance else '' }}",
+    status:       "{{ state.get('status', 'free') }}",
+    borrower:     "{{ state.get('borrower', '') }}",
+    lastBorrower:     "{{ state.get('last_borrower', '') }}",
+    lastNote:         {{ state.get('last_return_note', '')|tojson }}
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+};
+
+const isAr = document.documentElement.lang === 'ar';
+const na   = isAr ? 'غير متاح' : 'N/A';
+
+(function() {
+  const el = document.getElementById('planned_departure');
+  if (!el.value) {
+    const now = new Date();
+    now.setSeconds(0, 0);
+    el.value = now.toISOString().slice(0, 16);
+  }
+})();
+
+function showCarDetail(id) {
+  const car = CAR_DATA[id];
+  if (!car || car.status === 'borrowed') return;
+
+  document.getElementById('car_id_input').value = id;
+  document.querySelectorAll('.car-selector-card').forEach(c => c.classList.remove('selected'));
+  document.querySelector(`label[for="car_${id}"]`).classList.add('selected');
+
+  const img   = document.getElementById('carDetailImg');
+  const noImg = document.getElementById('carDetailNoImg');
+  if (car.image) { img.src = car.image; img.style.display='block'; noImg.style.display='none'; }
+  else { img.style.display='none'; noImg.style.display='flex'; }
+
+  document.getElementById('carDetailPlate').textContent = isAr && car.plateAr ? car.plateAr : car.plate;
+  document.getElementById('carDetailTitle').textContent = `${car.year} ${car.make} ${car.model}`;
+  document.getElementById('carDetailMake').textContent  = car.make;
+  document.getElementById('carDetailModel').textContent = car.model;
+  document.getElementById('carDetailYear').textContent  = car.year;
+  document.getElementById('carDetailColor').textContent = isAr && car.colorAr ? car.colorAr : car.color;
+  document.getElementById('carDetailSeats').textContent = car.seats;
+
+  const km = parseFloat(car.mileage) || 0;
+  document.getElementById('carDetailMileage').textContent = km > 0 ? km.toLocaleString() + ' km' : na;
+  document.getElementById('carDetailMajor').textContent = car.majorService || na;
+  document.getElementById('carDetailMinor').textContent = car.minorService || na;
+
+  const lastUserEl = document.getElementById('carDetailLastUser');
+  if (car.status === 'pending') {
+    lastUserEl.textContent = isAr ? `محجوز: ${car.borrower}` : `Reserved by: ${car.borrower}`;
+  } else {
+    lastUserEl.textContent = car.lastBorrower || na;
+  }
+
+  // Return note
+  const noteWrap = document.getElementById('carDetailNote');
+  const noteText = document.getElementById('carDetailNoteText');
+  if (car.lastNote && car.lastNote.trim()) {
+    noteText.textContent = car.lastNote;
+    noteWrap.style.display = 'block';
+  } else {
+    noteWrap.style.display = 'none';
+  }
+
+  // Status note
+  const statusEl = document.getElementById('carDetailStatus');
+  if (car.status === 'pending') {
+    statusEl.className = 'car-detail-status-note note-pending';
+    statusEl.textContent = isAr
+      ? `⏳ محجوزة من قِبَل: ${car.borrower} — لكن يمكنك الحجز`
+      : `⏳ Reserved by: ${car.borrower} — you can still book it`;
+    statusEl.style.display = 'block';
+  } else {
+    statusEl.style.display = 'none';
+  }
+
+  document.getElementById('carDetailPanel').style.display = 'block';
+  document.getElementById('carDetailPanel').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+document.querySelectorAll('input[name="car_id_radio"]').forEach(radio => {
+  if (radio.checked) showCarDetail(parseInt(radio.value));
+});
+
+function setLanguage(lang) {
+  document.getElementById('active_language').value = lang;
+  document.getElementById('section-en').classList.toggle('section-disabled', lang !== 'en');
+  document.getElementById('section-ar').classList.toggle('section-disabled', lang !== 'ar');
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-ar').classList.toggle('active', lang === 'ar');
+  document.querySelectorAll('#section-en input, #section-en textarea').forEach(el => el.disabled = lang !== 'en');
+  document.querySelectorAll('#section-ar input, #section-ar textarea').forEach(el => el.disabled = lang !== 'ar');
+  document.querySelectorAll('.lbl-en').forEach(el => el.style.display = lang === 'en' ? '' : 'none');
+  document.querySelectorAll('.lbl-ar').forEach(el => el.style.display = lang === 'ar' ? '' : 'none');
+  document.getElementById('dates-label-en').style.display = lang === 'en' ? '' : 'none';
+  document.getElementById('dates-label-ar').style.display = lang === 'ar' ? '' : 'none';
+}
+// Sync form language with navbar language toggle
+(function(){
+  const navLang = document.documentElement.lang === 'ar' ? 'ar' : 'en';
+  setLanguage(navLang);
+})();
+
+</script>
+<script src="{{ url_for('static', filename='js/booking_validation.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,65 @@
+.print-body{background:#e8e6e1;font-family:'DM Sans',Arial,sans-serif;margin:0;padding:0;}
+.print-toolbar{background:#1a1917;color:#fff;padding:0.875rem 2rem;position:sticky;top:0;z-index:100;}
+.print-toolbar-inner{max-width:800px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;}
+.print-toolbar-actions{display:flex;gap:0.75rem;align-items:center;}
+.print-toolbar-hint{font-size:0.78rem;color:rgba(255,255,255,0.55);max-width:800px;margin:0.5rem auto 0;}
+.print-toolbar .btn-primary{background:#2ecc71;border-color:#2ecc71;color:#fff;}
+.print-toolbar .btn-primary:hover{background:#27ae60;}
+.print-toolbar .btn-ghost{color:rgba(255,255,255,0.6);}
+.print-toolbar .btn-ghost:hover{background:rgba(255,255,255,0.08);color:#fff;}
+.print-page{max-width:760px;margin:2rem auto;padding:0 1rem;}
+.slip{background:#fff;border:1px solid #ccc;border-radius:6px;overflow:hidden;font-size:12px;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+.slip-header{display:flex;justify-content:space-between;align-items:center;padding:0.75rem 1.25rem;background:#f5f4f1;border-bottom:2px solid #1a5c3a;}
+.slip-org{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#1a5c3a;}
+.slip-reqno{font-size:11px;color:#6b6860;margin-top:2px;}
+.slip-copy-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:0.2rem 0.6rem;border-radius:3px;}
+.employee-copy{background:#1a5c3a;color:#fff;}
+.admin-copy{background:#922b21;color:#fff;}
+.slip-body{padding:1rem 1.25rem;}
+.slip-fields{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1.5rem;margin-bottom:1.25rem;}
+.slip-field-wide{grid-column:1 / -1;}
+.slip-field-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#a09d98;margin-bottom:1px;}
+.slip-field-value{font-size:12px;font-weight:500;color:#1a1917;border-bottom:1px solid #e2e0db;padding-bottom:3px;min-height:18px;}
+.slip-time{font-size:11px;color:#6b6860;}
+.slip-signatures{display:flex;gap:1rem;margin-top:1rem;padding-top:0.75rem;border-top:1px dashed #ccc;}
+.sig-block{flex:1;}
+.sig-line{border-bottom:1px solid #1a1917;height:28px;margin-bottom:4px;}
+.sig-label{font-size:9px;color:#a09d98;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;text-align:center;}
+.cut-line{display:flex;align-items:center;gap:0.5rem;padding:0.6rem 0;color:#a09d98;font-size:11px;user-select:none;}
+.cut-dashes{flex:1;border-top:1px dashed #bbb;}
+.cut-text{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#bbb;}
+@media print {
+  @page{size:A4 portrait;margin:12mm 15mm;}
+  .no-print{display:none !important;}
+  .print-body{background:#fff;}
+  .print-page{max-width:100%;margin:0;padding:0;}
+  .slip{box-shadow:none;border:1px solid #999;border-radius:0;page-break-inside:avoid;}
+  .slip-header{background:#f5f4f1 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .slip-copy-label{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .employee-copy{background:#1a5c3a !important;color:#fff !important;}
+  .admin-copy{background:#922b21 !important;color:#fff !important;}
+  .cut-line{padding:4mm 0;}
+  .cut-dashes{border-top:1px dashed #999;}
+}
+
+/* Page break between slips */
+.page-break-after {
+  page-break-after: always;
+  margin-bottom: 2rem;
+}
+@media print {
+  .page-break-after {
+    margin-bottom: 0;
+  }
+}
+
+/* Named signature blocks */
+.sig-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1a1917;
+  text-align: center;
+  margin-bottom: 6px;
+  font-family: 'Noto Naskh Arabic', 'DM Sans', sans-serif;
+  min-height: 14px;
+}

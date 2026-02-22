@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ 'طلب مغادرة جديد — LeavePass' if session.get('lang') == 'ar' else 'New Leave Request — LeavePass' }}{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'طلب مغادرة جديد' if ar else 'New Leave Request' }}</h1>
+    <p class="page-subtitle">{{ 'املأ التفاصيل أدناه. يمكنك الحفظ كمسودة أو المتابعة مباشرة للطباعة.' if ar else 'Fill in the details below. You can save as draft or proceed directly to print.' }}</p>
+  </div>
+  <a href="{{ url_for('main.dashboard') }}" class="btn btn-ghost">
+    {{ '→ رجوع' if ar else '← Back' }}
+  </a>
+</div>
+<div class="form-card">
+  <div class="form-card-info">
+    <div class="info-row">
+      <span class="info-label">{{ 'الموظف' if ar else 'Employee' }}</span>
+      <span class="info-value">{{ user.full_name }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">{{ 'القسم' if ar else 'Department' }}</span>
+      <span class="info-value">{{ user.department }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">{{ 'رقم الموظف' if ar else 'Employee No.' }}</span>
+      <span class="info-value mono">{{ user.employee_number }}</span>
+    </div>
+  </div>
+  <form method="POST" action="{{ url_for('main.new_leave') }}" id="leaveForm">
+  <input type="hidden" name="ui_lang" value="{{ session.get(\'lang\', \'en\') }}">
+    {% include 'partials/form_fields.html' %}
+    <div class="form-actions">
+      <button type="submit" name="action" value="save" class="btn btn-outline">
+        💾 {{ 'حفظ كمسودة' if ar else 'Save as Draft' }}
+      </button>
+      <button type="submit" name="action" value="print" class="btn btn-primary">
+        🖨 {{ 'حفظ وطباعة' if ar else 'Save & Print' }}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

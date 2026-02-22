@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}{{ 'حجوزاتي' if session.get('lang') == 'ar' else 'My Car Bookings — LeavePass' }}{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'حجوزات السيارات' if ar else 'My Car Bookings' }}</h1>
+    <p class="page-subtitle">{{ 'سجل طلبات استعارة السيارات' if ar else 'Your vehicle booking history' }}</p>
+  </div>
+  <a href="{{ url_for('cars.new_booking') }}" class="btn btn-primary">
+    + {{ 'حجز جديد' if ar else 'New Booking' }}
+  </a>
+</div>
+
+{% if bookings %}
+<div class="booking-cards">
+  {% for b in bookings %}
+  <div class="booking-admin-card status-border-{{ b.status }}">
+
+    <div class="bac-header">
+      <div class="bac-left">
+        <span class="mono bac-number">{{ b.booking_number }}</span>
+        <span class="status-badge {{ b.status_badge_class() }}">{% if b.status == 'pending' %}{{ 'معلق' if ar else 'Pending' }}{% elif b.status == 'borrowed' %}{{ 'مستعار' if ar else 'Borrowed' }}{% elif b.status == 'returned' %}{{ 'مُعاد' if ar else 'Returned' }}{% elif b.status == 'archived' %}{{ 'مؤرشف' if ar else 'Archived' }}{% else %}{{ b.status }}{% endif %}</span>
+      </div>
+      <div class="bac-right">{{ b.planned_departure.strftime('%d %b %Y') }}</div>
+    </div>
+
+    <div class="bac-body">
+      <div class="bac-section">
+        <div class="bac-section-label">{{ 'السيارة' if ar else 'Vehicle' }}</div>
+        <div class="bac-section-value">
+          <span class="mono" style="font-weight:700;">{{ b.car.plate_number }}</span>
+          <span style="color:var(--text-muted);margin-left:0.5rem;">{{ b.car.year }} {{ b.car.make }} {{ b.car.model }}</span>
+        </div>
+      </div>
+
+      <div class="bac-section">
+        <div class="bac-section-label">{{ 'الوجهة' if ar else 'Destination' }}</div>
+        <div class="bac-section-value">{{ b.destination or b.destination_ar or '—' }}</div>
+      </div>
+
+      <div class="bac-section">
+        <div class="bac-section-label">{{ 'الغرض' if ar else 'Purpose' }}</div>
+        <div class="bac-section-value" style="color:var(--text-muted);font-size:0.85rem;">{{ b.purpose or b.purpose_ar or '—' }}</div>
+      </div>
+
+      <div class="bac-section">
+        <div class="bac-section-label">{{ 'المدير' if ar else 'Manager' }}</div>
+        <div class="bac-section-value">{{ b.manager_name or '—' }}</div>
+      </div>
+
+      <div class="bac-timeline">
+        <div class="bac-timeline-item">
+          <span class="bac-tl-label">{{ 'موعد المغادرة' if ar else 'Planned Departure' }}</span>
+          <span class="bac-tl-value">{{ b.planned_departure.strftime('%d %b %Y, %I:%M %p') }}</span>
+        </div>
+        {% if b.actual_departure %}
+        <div class="bac-timeline-item bac-tl-actual">
+          <span class="bac-tl-label">{{ 'غادر في' if ar else 'Borrowed At' }}</span>
+          <span class="bac-tl-value">{{ b.actual_departure.strftime('%d %b %Y, %I:%M %p') }}</span>
+        </div>
+        {% endif %}
+        {% if b.actual_return %}
+        <div class="bac-timeline-item bac-tl-returned">
+          <span class="bac-tl-label">{{ 'أُعيد في' if ar else 'Returned At' }}</span>
+          <span class="bac-tl-value">{{ b.actual_return.strftime('%d %b %Y, %I:%M %p') }}</span>
+        </div>
+        {% endif %}
+        {% if b.odometer_return %}
+        <div class="bac-timeline-item">
+          <span class="bac-tl-label">{{ 'العداد عند الإرجاع' if ar else 'Odometer on Return' }}</span>
+          <span class="bac-tl-value mono">{{ b.odometer_return | int }} km</span>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if b.return_note %}
+      <div style="grid-column:1/-1;">
+        <div class="car-detail-return-note" style="margin-top:0;">
+          <span class="car-detail-note-label">⚠️ {{ 'ملاحظة السائق عند الإرجاع' if ar else 'Driver Return Note' }}</span>
+          <span>{{ b.return_note }}</span>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">🚗</div>
+  <p>{{ 'لا توجد حجوزات بعد.' if ar else 'No bookings yet.' }}</p>
+  <a href="{{ url_for('cars.new_booking') }}" class="btn btn-primary" style="margin-top:1rem;">
+    {{ 'ابدأ بحجز سيارة' if ar else 'Book a Vehicle' }}
+  </a>
+</div>
+{% endif %}
+{% endblock %}

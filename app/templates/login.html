@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="{{ session.get('lang', 'en') }}" dir="{{ 'rtl' if session.get('lang', 'en') == 'ar' else 'ltr' }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ 'تسجيل الدخول — LeavePass' if session.get('lang') == 'ar' else 'Login — LeavePass' }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+{% if session.get('lang') == 'ar' %}
+<style>
+  body { font-family: 'Noto Naskh Arabic', sans-serif; }
+  .form-label, .btn, .login-title, .login-subtitle, .login-hint { font-family: 'Noto Naskh Arabic', sans-serif; }
+</style>
+{% endif %}
+</head>
+<body class="login-body">
+
+<!-- Global language toggle -->
+<div class="global-lang-toggle">
+  <a href="{{ url_for('main.set_language', lang='en') }}"
+     class="lang-btn {% if session.get('lang', 'en') == 'en' %}active{% endif %}">English</a>
+  <a href="{{ url_for('main.set_language', lang='ar') }}"
+     class="lang-btn {% if session.get('lang') == 'ar' %}active{% endif %}">عربي</a>
+</div>
+
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-logo">⬡</div>
+      <h1 class="login-title">LeavePass</h1>
+      <p class="login-subtitle">
+        {{ 'نظام إدارة تصاريح المغادرة' if session.get('lang') == 'ar' else 'Office Leave Management System' }}
+      </p>
+    </div>
+
+    {% if error %}
+    <div class="flash flash-error" style="margin-bottom:1.5rem;">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('main.login') }}">
+      <div class="form-group">
+        <label class="form-label" for="username">
+          {{ 'اسم المستخدم' if session.get('lang') == 'ar' else 'Username' }}
+        </label>
+        <input class="form-input" type="text" id="username" name="username"
+          placeholder="{{ 'اسم.المستخدم' if session.get('lang') == 'ar' else 'your.username' }}"
+          autocomplete="username" autofocus required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="password">
+          {{ 'كلمة المرور' if session.get('lang') == 'ar' else 'Password' }}
+        </label>
+        <input class="form-input" type="password" id="password" name="password"
+          placeholder="••••••••" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">
+        {{ 'تسجيل الدخول' if session.get('lang') == 'ar' else 'Sign In' }}
+      </button>
+    </form>
+
+    <div class="login-hint">
+      <p>{{ 'استخدم بيانات اعتماد الشبكة لتسجيل الدخول.' if session.get('lang') == 'ar' else 'Use your network credentials to sign in.' }}</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ 'لوحة الإدارة — LeavePass' if session.get('lang') == 'ar' else 'Admin Dashboard — LeavePass' }}{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'لوحة الإدارة' if ar else 'Admin Dashboard' }}</h1>
+    <p class="page-subtitle">{{ 'جميع طلبات المغادرة في المنظمة' if ar else 'All leave requests across the organisation' }}</p>
+  </div>
+</div>
+
+<div class="filter-tabs">
+  {% for s, s_ar in [('all','الكل'),('draft','مسودة'),('pending','معلق'),('approved','معتمد'),('archived','مؤرشف')] %}
+  <a href="{{ url_for('main.admin_dashboard', status=s) }}"
+     class="filter-tab {% if status_filter == s %}active{% endif %}">
+    {{ s_ar if ar else s|capitalize }}
+  </a>
+  {% endfor %}
+</div>
+
+{% if records %}
+<div class="table-card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>{{ 'رقم الطلب' if ar else 'Request No.' }}</th>
+        <th>{{ 'الموظف' if ar else 'Employee' }}</th>
+        <th>{{ 'القسم' if ar else 'Dept.' }}</th>
+        <th>{{ 'الوجهة' if ar else 'Destination' }}</th>
+        <th>{{ 'تاريخ المغادرة' if ar else 'Departure' }}</th>
+        <th>{{ 'المدير' if ar else 'Manager' }}</th>
+        <th>{{ 'الحالة' if ar else 'Status' }}</th>
+        <th>{{ 'الإجراءات' if ar else 'Actions' }}</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in records %}
+    <tr>
+      <td><span class="mono">{{ r.request_number }}</span></td>
+      <td>{{ r.employee_name_ar if ar and r.employee_name_ar else r.employee_name }}</td>
+      <td>{{ r.employee_department_ar if ar and r.employee_department_ar else r.employee_department }}</td>
+      <td>{{ (r.destination_ar if ar and r.destination_ar else r.destination) or '—' }}</td>
+      <td>{{ r.departure_datetime.strftime('%Y/%m/%d %I:%M %p') if ar else r.departure_datetime.strftime('%b %d %Y, %I:%M %p') }}</td>
+      <td>{{ r.manager_name_ar if ar and r.manager_name_ar else r.manager_name }}</td>
+      <td><span class="badge {{ r.status_badge_class() }}">{{ r.status }}</span></td>
+      <td class="actions-cell">
+        <a href="{{ url_for('main.print_slip', id=r.id) }}" class="btn btn-sm btn-outline">🖨</a>
+        <a href="{{ url_for('main.admin_view', id=r.id) }}" class="btn btn-sm btn-ghost">
+          {{ 'عرض' if ar else 'View' }}
+        </a>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">📭</div>
+  <h3>{{ 'لا توجد سجلات' if ar else 'No records found' }}</h3>
+  <p>{{ 'لا توجد طلبات تطابق الفلتر المحدد.' if ar else 'No leave requests match the selected filter.' }}</p>
+</div>
+{% endif %}
+{% endblock %}

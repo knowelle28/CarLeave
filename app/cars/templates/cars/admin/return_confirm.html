@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Confirm Return — LeavePass{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'تأكيد الإرجاع' if ar else 'Confirm Vehicle Return' }}</h1>
+    <p class="page-subtitle">{{ 'أدخل تفاصيل الإرجاع' if ar else 'Enter return details' }}</p>
+  </div>
+  <a href="{{ url_for('cars.admin_bookings') }}" class="btn btn-ghost">
+    {{ '→ رجوع' if ar else '← Back' }}
+  </a>
+</div>
+
+<div class="form-card" style="max-width:560px;">
+
+  <div class="form-card-info">
+    <div class="info-row">
+      <span class="info-label">{{ 'رقم الحجز' if ar else 'Booking' }}</span>
+      <span class="info-value mono">{{ booking.booking_number }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">{{ 'الموظف' if ar else 'Employee' }}</span>
+      <span class="info-value">{{ booking.employee_name }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">{{ 'السيارة' if ar else 'Vehicle' }}</span>
+      <span class="info-value">
+        {{ booking.car.year }} {{ booking.car.make }} {{ booking.car.model }}
+        — <span class="mono">{{ booking.car.plate_number }}</span>
+      </span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">{{ 'الوجهة' if ar else 'Destination' }}</span>
+      <span class="info-value">{{ booking.destination or booking.destination_ar or '—' }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">{{ 'غادر في' if ar else 'Borrowed At' }}</span>
+      <span class="info-value">
+        {{ booking.actual_departure.strftime('%d %b %Y, %I:%M %p') if booking.actual_departure else '—' }}
+      </span>
+    </div>
+    {% if booking.car.current_mileage %}
+    <div class="info-row">
+      <span class="info-label">{{ 'آخر قراءة عداد' if ar else 'Last Mileage' }}</span>
+      <span class="info-value mono">{{ booking.car.current_mileage | int }} km</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <form method="POST" action="{{ url_for('cars.admin_update_status', id=booking.id) }}">
+    <input type="hidden" name="status" value="returned">
+    <input type="hidden" name="ui_lang" value="{{ session.get('lang', 'en') }}">
+
+    <div class="form-group">
+      <label class="form-label">
+        {{ 'تاريخ ووقت الإرجاع الفعلي' if ar else 'Actual Return Date & Time' }}
+        <span class="required">*</span>
+      </label>
+      <input class="form-input" type="datetime-local" name="actual_return"
+             id="actual_return" required>
+      <small style="color:var(--text-muted);font-size:0.78rem;">
+        {{ 'أدخل الوقت الفعلي الذي أُعيدت فيه السيارة، ليس وقت تسجيلك الآن.' if ar else 'Enter the actual time the car was returned, not when you are recording it.' }}
+      </small>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">
+        {{ 'قراءة العداد عند الإرجاع (كم)' if ar else 'Odometer on Return (km)' }}
+        <span class="required">*</span>
+      </label>
+      <input class="form-input mono" type="number" name="odometer_return"
+             step="0.1" min="{{ booking.car.current_mileage or 0 }}"
+             placeholder="{{ 'أدخل قراءة العداد' if ar else 'Enter odometer reading' }}"
+             required>
+      <small style="color:var(--text-muted);font-size:0.78rem;">
+        {% if booking.car.current_mileage %}
+        {{ 'الحد الأدنى المقبول: ' if ar else 'Minimum accepted: ' }}
+        <strong class="mono">{{ booking.car.current_mileage | int }} km</strong>
+        &nbsp;·&nbsp;
+        {% endif %}
+        {{ 'يجب أن تكون أكبر من أو تساوي القراءة الأخيرة.' if ar else 'Must be equal to or greater than the last recorded reading.' }}
+      </small>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">
+        {{ 'ملاحظات السائق (اختياري)' if ar else 'Driver Notes (optional)' }}
+      </label>
+      <textarea class="form-input form-textarea" name="return_note" rows="3"
+                placeholder="{{ 'مثال: خدش في الصدام، نسي أحد الركاب حقيبته...' if ar else 'e.g. Bumper scratch, passenger left a bag, fuel was low...' }}"></textarea>
+      <small style="color:var(--text-muted);font-size:0.78rem;">
+        {{ 'ستظهر هذه الملاحظة في سجل الحجز وفي لوحة تفاصيل السيارة.' if ar else 'This note will appear in the booking record and vehicle detail panel.' }}
+      </small>
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ url_for('cars.admin_bookings') }}" class="btn btn-ghost">
+        {{ 'إلغاء' if ar else 'Cancel' }}
+      </a>
+      <button type="submit" class="btn btn-primary">
+        {{ 'تأكيد الإرجاع' if ar else 'Confirm Return' }}
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+// Default the return datetime to now but allow editing
+(function() {
+  const el = document.getElementById('actual_return');
+  const now = new Date();
+  now.setSeconds(0, 0);
+  el.value = now.toISOString().slice(0, 16);
+})();
+</script>
+{% endblock %}
