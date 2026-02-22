@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="{{ session.get('lang', 'en') }}" dir="{{ 'rtl' if session.get('lang') == 'ar' else 'ltr' }}">
+<head>
+<meta charset="UTF-8">
+<title>{{ report_title }} — Help Desk Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 11pt;
+    color: #000;
+    padding: 20mm 15mm;
+  }
+  .report-header {
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
+  .report-header h1 {
+    font-size: 16pt;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+  .report-meta {
+    font-size: 9pt;
+    color: #444;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .report-stats {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 14px;
+    padding: 8px 12px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    font-size: 10pt;
+    flex-wrap: wrap;
+  }
+  .stat-item { display: flex; flex-direction: column; }
+  .stat-val   { font-size: 14pt; font-weight: bold; }
+  .stat-label { font-size: 8pt; color: #555; text-transform: uppercase; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+    margin-top: 8px;
+  }
+  thead tr { background: #222; color: #fff; }
+  thead th {
+    padding: 7px 8px;
+    text-align: left;
+    font-weight: bold;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid #e0e0e0; }
+  tbody tr:nth-child(even) { background: #f9f9f9; }
+  tbody tr:last-child { border-bottom: 2px solid #000; }
+  tbody td { padding: 6px 8px; vertical-align: top; }
+  .td-mono { font-family: monospace; font-size: 9pt; }
+  .status-pill {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 99px;
+    font-size: 8pt;
+    font-weight: bold;
+    border: 1px solid #ccc;
+  }
+  .s-open        { border-color: #f5d88a; color: #9a6700; background: #fef9ec; }
+  .s-in_progress { border-color: #ffcc80; color: #e65100; background: #fff3e0; }
+  .s-resolved    { border-color: #a3e4be; color: #155c35; background: #edfbf3; }
+  .s-closed      { border-color: #bee3f8; color: #2c5282; background: #edf2fb; }
+  .p-low         { color: #6b6860; }
+  .p-normal      { color: #9a6700; }
+  .p-high        { color: #c05800; font-weight: bold; }
+  .p-urgent      { color: #922b21; font-weight: bold; }
+  .report-footer {
+    margin-top: 20px;
+    border-top: 1px solid #ccc;
+    padding-top: 8px;
+    font-size: 8pt;
+    color: #666;
+    display: flex;
+    justify-content: space-between;
+  }
+  @media print {
+    body { padding: 10mm 10mm; }
+    .no-print { display: none !important; }
+  }
+</style>
+</head>
+<body>
+{% set ar = session.get('lang') == 'ar' %}
+
+<!-- Print / Close buttons -->
+<div class="no-print" style="margin-bottom:16px;">
+  <button onclick="window.print()" style="padding:8px 20px;font-size:10pt;cursor:pointer;
+    background:#222;color:#fff;border:none;border-radius:4px;margin-right:8px;">
+    🖨 {{ 'طباعة' if ar else 'Print' }}
+  </button>
+  <button onclick="window.close()" style="padding:8px 20px;font-size:10pt;cursor:pointer;
+    background:#eee;color:#222;border:1px solid #ccc;border-radius:4px;">
+    {{ 'إغلاق' if ar else 'Close' }}
+  </button>
+</div>
+
+<!-- Header -->
+<div class="report-header">
+  <h1>
+    {{ 'تقرير مكتب المساعدة — ' if ar else 'Help Desk Report — ' }}{{ report_title }}
+  </h1>
+  <div class="report-meta">
+    <span>{{ 'نوع التقرير: ' if ar else 'Report Type: ' }}
+      <strong>
+        {% if report_type == 'category' %}{{ 'حسب الفئة' if ar else 'By Category' }}
+        {% elif report_type == 'requester' %}{{ 'حسب مقدم الطلب' if ar else 'By Requester' }}
+        {% else %}{{ 'حسب موظف الدعم' if ar else 'By Staff Member' }}{% endif %}
+      </strong>
+    </span>
+    {% if status_filter != 'all' %}
+    <span>{{ 'الحالة: ' if ar else 'Status: ' }}<strong>{{ status_filter.replace('_',' ').title() }}</strong></span>
+    {% endif %}
+    {% if priority_filter != 'all' %}
+    <span>{{ 'الأولوية: ' if ar else 'Priority: ' }}<strong>{{ priority_filter.title() }}</strong></span>
+    {% endif %}
+    {% if date_from or date_to %}
+    <span>{{ 'الفترة: ' if ar else 'Period: ' }}
+      <strong>{{ date_from or '…' }} → {{ date_to or ('اليوم' if ar else 'today') }}</strong>
+    </span>
+    {% endif %}
+    <span>{{ 'تاريخ الطباعة: ' if ar else 'Printed: ' }}
+      <strong>{{ now.strftime('%d %b %Y, %I:%M %p') }}</strong>
+    </span>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="report-stats">
+  <div class="stat-item">
+    <span class="stat-val">{{ tickets|length }}</span>
+    <span class="stat-label">{{ 'الإجمالي' if ar else 'Total' }}</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-val">{{ tickets|selectattr('status','equalto','open')|list|length }}</span>
+    <span class="stat-label">{{ 'مفتوح' if ar else 'Open' }}</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-val">{{ tickets|selectattr('status','equalto','in_progress')|list|length }}</span>
+    <span class="stat-label">{{ 'قيد المعالجة' if ar else 'In Progress' }}</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-val">{{ tickets|selectattr('status','equalto','resolved')|list|length }}</span>
+    <span class="stat-label">{{ 'محلول' if ar else 'Resolved' }}</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-val">{{ tickets|selectattr('status','equalto','closed')|list|length }}</span>
+    <span class="stat-label">{{ 'مغلق' if ar else 'Closed' }}</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-val">{{ tickets|selectattr('priority','equalto','urgent')|list|length }}</span>
+    <span class="stat-label">{{ 'عاجلة' if ar else 'Urgent' }}</span>
+  </div>
+</div>
+
+<!-- Table -->
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>{{ 'رقم التذكرة' if ar else 'Ticket No.' }}</th>
+      <th>{{ 'مقدم بواسطة' if ar else 'Requester' }}</th>
+      <th>{{ 'العنوان' if ar else 'Title' }}</th>
+      <th>{{ 'الفئة' if ar else 'Category' }}</th>
+      <th>{{ 'القسم' if ar else 'Dept.' }}</th>
+      <th>{{ 'الأولوية' if ar else 'Priority' }}</th>
+      <th>{{ 'الحالة' if ar else 'Status' }}</th>
+      <th>{{ 'مسند إلى' if ar else 'Assigned To' }}</th>
+      <th>{{ 'الردود' if ar else 'Replies' }}</th>
+      <th>{{ 'تاريخ التقديم' if ar else 'Submitted' }}</th>
+      <th>{{ 'آخر تحديث' if ar else 'Last Updated' }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in tickets %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td class="td-mono">{{ t.ticket_number }}</td>
+      <td>{{ t.created_by_name_ar if ar and t.created_by_name_ar else t.created_by_name }}</td>
+      <td style="max-width:150px;font-size:8.5pt;">
+        {{ (t.title_ar if ar and t.title_ar else t.title)[:60] }}{% if (t.title_ar if ar and t.title_ar else t.title)|length > 60 %}…{% endif %}
+      </td>
+      <td style="font-size:8.5pt;">{{ t.category.name_ar if ar and t.category.name_ar else t.category.name }}</td>
+      <td style="font-size:8.5pt;">{{ t.category.department }}</td>
+      <td>
+        <span class="p-{{ t.priority }}">
+          {% if ar %}
+            {% if t.priority == 'low' %}منخفضة{% elif t.priority == 'normal' %}عادية{% elif t.priority == 'high' %}عالية{% else %}عاجلة{% endif %}
+          {% else %}
+            {{ t.priority | title }}
+          {% endif %}
+        </span>
+      </td>
+      <td>
+        <span class="status-pill s-{{ t.status }}">
+          {% if ar %}
+            {% if t.status == 'open' %}مفتوح{% elif t.status == 'in_progress' %}قيد المعالجة{% elif t.status == 'resolved' %}محلول{% else %}مغلق{% endif %}
+          {% else %}
+            {{ t.status.replace('_',' ') | title }}
+          {% endif %}
+        </span>
+      </td>
+      <td class="td-mono" style="font-size:8.5pt;">{{ t.assigned_to_username or '—' }}</td>
+      <td style="text-align:center;font-weight:bold;">{{ t.messages|length }}</td>
+      <td style="white-space:nowrap;font-size:8.5pt;">{{ t.created_at.strftime('%d %b %Y') }}</td>
+      <td style="white-space:nowrap;font-size:8.5pt;">{{ t.updated_at.strftime('%d %b %Y') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- Footer -->
+<div class="report-footer">
+  <span>Employee Applications Portal — Help Desk</span>
+  <span>{{ tickets|length }} {{ 'سجل' if ar else 'record(s)' }}</span>
+</div>
+
+</body>
+</html>

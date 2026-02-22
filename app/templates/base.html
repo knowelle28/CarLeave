@@ -85,6 +85,9 @@
           <a href="{{ url_for('helpdesk.admin_staff') }}" class="nav-dropdown-item">
             👥 {{ 'فريق الدعم' if session.get('lang') == 'ar' else 'HD Staff' }}
           </a>
+          <a href="{{ url_for('helpdesk.admin_reports') }}" class="nav-dropdown-item">
+            📊 {{ 'تقارير مكتب المساعدة' if session.get('lang') == 'ar' else 'HD Reports' }}
+          </a>
         </div>
       </div>
       {% endif %}

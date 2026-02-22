@@ -529,6 +529,181 @@ def admin_toggle_staff(id):
     return redirect(url_for("helpdesk.admin_staff"))
 
 
+# ─── Report Routes ───────────────────────────────────────────────────────────
+
+@helpdesk_bp.route("/admin/helpdesk/reports")
+@login_required
+@admin_required
+def admin_reports():
+    from datetime import datetime, timedelta
+
+    report_type  = request.args.get("type", "category")
+    selected_id  = request.args.get("selected_id", "all")
+    date_from    = request.args.get("date_from", "")
+    date_to      = request.args.get("date_to", "")
+    status_filter   = request.args.get("status", "all")
+    priority_filter = request.args.get("priority", "all")
+
+    # Selector lists
+    categories = HelpDeskCategory.query.order_by(HelpDeskCategory.name).all()
+    staff_members = HelpDeskStaff.query.order_by(HelpDeskStaff.full_name).all()
+
+    # Unique requesters — PostgreSQL requires DISTINCT ON column to lead ORDER BY
+    from sqlalchemy import text
+    requester_rows = db.session.execute(text(
+        "SELECT DISTINCT ON (created_by_username) created_by_username, created_by_name "
+        "FROM helpdesk_tickets ORDER BY created_by_username ASC"
+    )).fetchall()
+    requester_rows = sorted(requester_rows, key=lambda r: r.created_by_name)
+
+    query = HelpDeskTicket.query
+
+    # Type filter
+    report_title = ""
+    if report_type == "category":
+        if selected_id != "all":
+            query = query.filter_by(category_id=int(selected_id))
+            cat = HelpDeskCategory.query.get(int(selected_id))
+            report_title = cat.name if cat else selected_id
+        else:
+            report_title = "All Categories"
+    elif report_type == "requester":
+        if selected_id != "all":
+            query = query.filter_by(created_by_username=selected_id)
+            match = [r for r in requester_rows if r.created_by_username == selected_id]
+            report_title = match[0].created_by_name if match else selected_id
+        else:
+            report_title = "All Requesters"
+    elif report_type == "staff":
+        if selected_id != "all":
+            query = query.filter_by(assigned_to_username=selected_id)
+            s = HelpDeskStaff.query.filter_by(username=selected_id).first()
+            report_title = s.full_name if s else selected_id
+        else:
+            report_title = "All Staff"
+
+    # Status / priority filters
+    if status_filter != "all":
+        query = query.filter_by(status=status_filter)
+    if priority_filter != "all":
+        query = query.filter_by(priority=priority_filter)
+
+    # Date filters (on created_at)
+    if date_from:
+        try:
+            query = query.filter(
+                HelpDeskTicket.created_at >= datetime.strptime(date_from, "%Y-%m-%d")
+            )
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            query = query.filter(
+                HelpDeskTicket.created_at <=
+                datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1)
+            )
+        except ValueError:
+            pass
+
+    tickets = query.order_by(HelpDeskTicket.created_at.desc()).all()
+
+    return render_template(
+        "helpdesk/admin/reports.html",
+        tickets=tickets,
+        report_type=report_type,
+        selected_id=selected_id,
+        date_from=date_from,
+        date_to=date_to,
+        status_filter=status_filter,
+        priority_filter=priority_filter,
+        report_title=report_title,
+        categories=categories,
+        staff_members=staff_members,
+        requester_rows=requester_rows,
+    )
+
+
+@helpdesk_bp.route("/admin/helpdesk/reports/print")
+@login_required
+@admin_required
+def admin_reports_print():
+    from datetime import datetime, timedelta
+
+    report_type     = request.args.get("type", "category")
+    selected_id     = request.args.get("selected_id", "all")
+    date_from       = request.args.get("date_from", "")
+    date_to         = request.args.get("date_to", "")
+    status_filter   = request.args.get("status", "all")
+    priority_filter = request.args.get("priority", "all")
+
+    from sqlalchemy import text
+    requester_rows = db.session.execute(text(
+        "SELECT DISTINCT ON (created_by_username) created_by_username, created_by_name "
+        "FROM helpdesk_tickets ORDER BY created_by_username ASC"
+    )).fetchall()
+
+    query = HelpDeskTicket.query
+    report_title = ""
+
+    if report_type == "category":
+        if selected_id != "all":
+            query = query.filter_by(category_id=int(selected_id))
+            cat = HelpDeskCategory.query.get(int(selected_id))
+            report_title = cat.name if cat else selected_id
+        else:
+            report_title = "All Categories"
+    elif report_type == "requester":
+        if selected_id != "all":
+            query = query.filter_by(created_by_username=selected_id)
+            match = [r for r in requester_rows if r.created_by_username == selected_id]
+            report_title = match[0].created_by_name if match else selected_id
+        else:
+            report_title = "All Requesters"
+    elif report_type == "staff":
+        if selected_id != "all":
+            query = query.filter_by(assigned_to_username=selected_id)
+            s = HelpDeskStaff.query.filter_by(username=selected_id).first()
+            report_title = s.full_name if s else selected_id
+        else:
+            report_title = "All Staff"
+
+    if status_filter != "all":
+        query = query.filter_by(status=status_filter)
+    if priority_filter != "all":
+        query = query.filter_by(priority=priority_filter)
+
+    if date_from:
+        try:
+            query = query.filter(
+                HelpDeskTicket.created_at >= datetime.strptime(date_from, "%Y-%m-%d")
+            )
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            query = query.filter(
+                HelpDeskTicket.created_at <=
+                datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1)
+            )
+        except ValueError:
+            pass
+
+    tickets = query.order_by(HelpDeskTicket.created_at.desc()).all()
+
+    return render_template(
+        "helpdesk/admin/report_print.html",
+        tickets=tickets,
+        report_type=report_type,
+        selected_id=selected_id,
+        date_from=date_from,
+        date_to=date_to,
+        status_filter=status_filter,
+        priority_filter=priority_filter,
+        report_title=report_title,
+        now=datetime.utcnow(),
+    )
+
+
 # ─── Notification Routes ──────────────────────────────────────────────────────
 
 @helpdesk_bp.route("/notifications")

@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+{% block title %}{{ 'تقارير مكتب المساعدة' if session.get('lang') == 'ar' else 'Help Desk Reports' }}{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'تقارير مكتب المساعدة' if ar else 'Help Desk Reports' }}</h1>
+    <p class="page-subtitle">{{ 'تقرير مفصل حسب الفئة أو مقدم الطلب أو الموظف' if ar else 'Detailed report by category, requester, or staff member' }}</p>
+  </div>
+  {% if tickets %}
+  <a href="{{ url_for('helpdesk.admin_reports_print',
+       type=report_type, selected_id=selected_id,
+       date_from=date_from, date_to=date_to,
+       status=status_filter, priority=priority_filter) }}"
+     target="_blank" class="btn btn-ghost">
+    🖨 {{ 'طباعة' if ar else 'Print' }}
+  </a>
+  {% endif %}
+</div>
+
+<!-- Filter form -->
+<div class="form-card report-filter-card no-print">
+  <form method="GET" action="{{ url_for('helpdesk.admin_reports') }}" id="reportForm">
+
+    <!-- Report type toggle -->
+    <div class="form-group">
+      <label class="form-label">{{ 'نوع التقرير' if ar else 'Report Type' }}</label>
+      <div class="report-type-toggle">
+        <button type="button"
+                class="report-type-btn {% if report_type == 'category' %}active{% endif %}"
+                onclick="setReportType('category')">
+          🏷 {{ 'حسب الفئة' if ar else 'By Category' }}
+        </button>
+        <button type="button"
+                class="report-type-btn {% if report_type == 'requester' %}active{% endif %}"
+                onclick="setReportType('requester')">
+          👤 {{ 'حسب مقدم الطلب' if ar else 'By Requester' }}
+        </button>
+        <button type="button"
+                class="report-type-btn {% if report_type == 'staff' %}active{% endif %}"
+                onclick="setReportType('staff')">
+          🛡️ {{ 'حسب موظف الدعم' if ar else 'By Staff Member' }}
+        </button>
+      </div>
+      <input type="hidden" name="type" id="report_type_input" value="{{ report_type }}">
+    </div>
+
+    <div class="report-filter-grid">
+
+      <!-- Category selector -->
+      <div class="form-group" id="cat-selector-wrap"
+           style="display:{{ 'block' if report_type == 'category' else 'none' }};">
+        <label class="form-label">{{ 'الفئة' if ar else 'Category' }}</label>
+        <select class="form-input form-select" name="selected_id" id="cat_select">
+          <option value="all" {% if selected_id == 'all' %}selected{% endif %}>
+            — {{ 'كل الفئات' if ar else 'All Categories' }} —
+          </option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}"
+            {% if report_type == 'category' and selected_id == cat.id|string %}selected{% endif %}>
+            {{ cat.name_ar if ar and cat.name_ar else cat.name }}
+            ({{ cat.department_ar if ar and cat.department_ar else cat.department }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Requester selector -->
+      <div class="form-group" id="requester-selector-wrap"
+           style="display:{{ 'block' if report_type == 'requester' else 'none' }};">
+        <label class="form-label">{{ 'مقدم الطلب' if ar else 'Requester' }}</label>
+        <select class="form-input form-select" name="selected_id" id="requester_select">
+          <option value="all" {% if selected_id == 'all' %}selected{% endif %}>
+            — {{ 'كل مقدمي الطلبات' if ar else 'All Requesters' }} —
+          </option>
+          {% for r in requester_rows %}
+          <option value="{{ r.created_by_username }}"
+            {% if report_type == 'requester' and selected_id == r.created_by_username %}selected{% endif %}>
+            {{ r.created_by_name }} ({{ r.created_by_username }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Staff selector -->
+      <div class="form-group" id="staff-selector-wrap"
+           style="display:{{ 'block' if report_type == 'staff' else 'none' }};">
+        <label class="form-label">{{ 'موظف الدعم' if ar else 'Staff Member' }}</label>
+        <select class="form-input form-select" name="selected_id" id="staff_select">
+          <option value="all" {% if selected_id == 'all' %}selected{% endif %}>
+            — {{ 'كل الموظفين' if ar else 'All Staff' }} —
+          </option>
+          {% for s in staff_members %}
+          <option value="{{ s.username }}"
+            {% if report_type == 'staff' and selected_id == s.username %}selected{% endif %}>
+            {{ s.full_name_ar if ar and s.full_name_ar else s.full_name }}
+            ({{ s.department }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Status -->
+      <div class="form-group">
+        <label class="form-label">{{ 'الحالة' if ar else 'Status' }}</label>
+        <select class="form-input form-select" name="status">
+          {% for s, label_en, label_ar in [
+              ('all','All Statuses','كل الحالات'),
+              ('open','Open','مفتوح'),
+              ('in_progress','In Progress','قيد المعالجة'),
+              ('resolved','Resolved','محلول'),
+              ('closed','Closed','مغلق')
+          ] %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>
+            {{ label_ar if ar else label_en }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Priority -->
+      <div class="form-group">
+        <label class="form-label">{{ 'الأولوية' if ar else 'Priority' }}</label>
+        <select class="form-input form-select" name="priority">
+          {% for p, label_en, label_ar in [
+              ('all','All Priorities','كل الأولويات'),
+              ('urgent','Urgent','عاجلة'),
+              ('high','High','عالية'),
+              ('normal','Normal','عادية'),
+              ('low','Low','منخفضة')
+          ] %}
+          <option value="{{ p }}" {% if priority_filter == p %}selected{% endif %}>
+            {{ label_ar if ar else label_en }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Date from -->
+      <div class="form-group">
+        <label class="form-label">
+          {{ 'من تاريخ' if ar else 'From Date' }}
+          <small style="color:var(--text-faint);font-weight:400;">
+            ({{ 'اتركه فارغاً للبداية' if ar else 'leave blank for earliest' }})
+          </small>
+        </label>
+        <input class="form-input" type="date" name="date_from" value="{{ date_from }}">
+      </div>
+
+      <!-- Date to -->
+      <div class="form-group">
+        <label class="form-label">
+          {{ 'إلى تاريخ' if ar else 'To Date' }}
+          <small style="color:var(--text-faint);font-weight:400;">
+            ({{ 'اتركه فارغاً لليوم' if ar else 'leave blank for today' }})
+          </small>
+        </label>
+        <input class="form-input" type="date" name="date_to" value="{{ date_to }}">
+      </div>
+
+    </div>
+
+    <div class="form-actions" style="margin-top:1rem;">
+      <button type="submit" class="btn btn-primary">
+        🔍 {{ 'إنشاء التقرير' if ar else 'Generate Report' }}
+      </button>
+      <a href="{{ url_for('helpdesk.admin_reports') }}" class="btn btn-ghost">
+        ✕ {{ 'مسح' if ar else 'Clear' }}
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Results -->
+<div class="report-results">
+
+  <!-- Summary header -->
+  <div class="report-header-bar">
+    <div class="report-header-title">
+      {% if report_type == 'category' %}🏷{% elif report_type == 'requester' %}👤{% else %}🛡️{% endif %}
+      {{ report_title }}
+      {% if date_from or date_to %}
+      <span style="font-weight:400;font-size:0.85rem;color:var(--text-muted);margin-{{ 'right' if ar else 'left' }}:0.75rem;">
+        {{ date_from or '…' }} → {{ date_to or ('اليوم' if ar else 'today') }}
+      </span>
+      {% endif %}
+    </div>
+    <div class="report-header-meta">{{ tickets|length }} {{ 'سجل' if ar else 'record(s)' }}</div>
+  </div>
+
+  <!-- Stats strip -->
+  <div class="report-stats">
+    <div class="report-stat">
+      <span class="report-stat-val">{{ tickets|length }}</span>
+      <span class="report-stat-label">{{ 'الإجمالي' if ar else 'Total' }}</span>
+    </div>
+    <div class="report-stat">
+      <span class="report-stat-val">{{ tickets|selectattr('status','equalto','open')|list|length }}</span>
+      <span class="report-stat-label">{{ 'مفتوح' if ar else 'Open' }}</span>
+    </div>
+    <div class="report-stat">
+      <span class="report-stat-val">{{ tickets|selectattr('status','equalto','in_progress')|list|length }}</span>
+      <span class="report-stat-label">{{ 'قيد المعالجة' if ar else 'In Progress' }}</span>
+    </div>
+    <div class="report-stat">
+      <span class="report-stat-val">{{ tickets|selectattr('status','equalto','resolved')|list|length }}</span>
+      <span class="report-stat-label">{{ 'محلول' if ar else 'Resolved' }}</span>
+    </div>
+    <div class="report-stat">
+      <span class="report-stat-val">{{ tickets|selectattr('status','equalto','closed')|list|length }}</span>
+      <span class="report-stat-label">{{ 'مغلق' if ar else 'Closed' }}</span>
+    </div>
+    <div class="report-stat">
+      <span class="report-stat-val">{{ tickets|selectattr('priority','equalto','urgent')|list|length }}</span>
+      <span class="report-stat-label">{{ 'عاجلة' if ar else 'Urgent' }}</span>
+    </div>
+  </div>
+
+  {% if tickets %}
+  <div class="table-card" style="border-radius:0 0 var(--radius-lg) var(--radius-lg);border-top:none;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>{{ 'رقم التذكرة' if ar else 'Ticket No.' }}</th>
+          <th>{{ 'مقدم بواسطة' if ar else 'Requester' }}</th>
+          <th>{{ 'العنوان' if ar else 'Title' }}</th>
+          <th>{{ 'الفئة' if ar else 'Category' }}</th>
+          <th>{{ 'الأولوية' if ar else 'Priority' }}</th>
+          <th>{{ 'الحالة' if ar else 'Status' }}</th>
+          <th>{{ 'مسند إلى' if ar else 'Assigned' }}</th>
+          <th>{{ 'الردود' if ar else 'Replies' }}</th>
+          <th>{{ 'تاريخ التقديم' if ar else 'Submitted' }}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tickets %}
+        <tr>
+          <td style="color:var(--text-faint);font-size:0.8rem;">{{ loop.index }}</td>
+          <td><span class="mono" style="font-weight:700;color:var(--accent);">{{ t.ticket_number }}</span></td>
+          <td style="font-size:0.875rem;">{{ t.created_by_name_ar if ar and t.created_by_name_ar else t.created_by_name }}</td>
+          <td style="max-width:220px;">
+            <span style="font-size:0.875rem;">{{ t.title_ar if ar and t.title_ar else t.title }}</span>
+          </td>
+          <td style="font-size:0.82rem;color:var(--text-muted);">
+            {{ t.category.name_ar if ar and t.category.name_ar else t.category.name }}<br>
+            <span style="font-size:0.75rem;">{{ t.category.department }}</span>
+          </td>
+          <td><span class="badge {{ t.priority_badge_class() }}">
+            {% if ar %}
+              {% if t.priority == 'low' %}منخفضة{% elif t.priority == 'normal' %}عادية{% elif t.priority == 'high' %}عالية{% else %}عاجلة{% endif %}
+            {% else %}
+              {{ t.priority | title }}
+            {% endif %}
+          </span></td>
+          <td><span class="badge {{ t.status_badge_class() }}">
+            {% if ar %}
+              {% if t.status == 'open' %}مفتوح{% elif t.status == 'in_progress' %}قيد المعالجة{% elif t.status == 'resolved' %}محلول{% else %}مغلق{% endif %}
+            {% else %}
+              {{ t.status.replace('_',' ') | title }}
+            {% endif %}
+          </span></td>
+          <td class="mono" style="font-size:0.82rem;color:var(--text-muted);">
+            {{ t.assigned_to_username or '—' }}
+          </td>
+          <td style="text-align:center;font-size:0.875rem;font-weight:600;">
+            {{ t.messages|length }}
+          </td>
+          <td style="color:var(--text-muted);font-size:0.82rem;white-space:nowrap;">
+            {{ t.created_at.strftime('%d %b %Y') }}
+          </td>
+          <td>
+            <a href="{{ url_for('helpdesk.ticket_detail', id=t.id) }}" class="btn btn-ghost btn-sm">
+              {{ '← عرض' if ar else 'View →' }}
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+  <div class="empty-state"
+       style="border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+    <div class="empty-icon">🎫</div>
+    <p>{{ 'لا توجد سجلات لهذا الاختيار.' if ar else 'No records found for this selection.' }}</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function setReportType(type) {
+  document.getElementById('report_type_input').value = type;
+  document.querySelectorAll('.report-type-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('cat-selector-wrap').style.display       = type === 'category'  ? 'block' : 'none';
+  document.getElementById('requester-selector-wrap').style.display = type === 'requester' ? 'block' : 'none';
+  document.getElementById('staff-selector-wrap').style.display     = type === 'staff'     ? 'block' : 'none';
+  document.getElementById('cat_select').disabled       = type !== 'category';
+  document.getElementById('requester_select').disabled = type !== 'requester';
+  document.getElementById('staff_select').disabled     = type !== 'staff';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const type = document.getElementById('report_type_input').value || 'category';
+  document.getElementById('cat_select').disabled       = type !== 'category';
+  document.getElementById('requester_select').disabled = type !== 'requester';
+  document.getElementById('staff_select').disabled     = type !== 'staff';
+});
+</script>
+{% endblock %}
