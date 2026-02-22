@@ -1,12 +1,5 @@
-<!-- Language Toggle -->
-<div class="lang-toggle-wrap">
-  <span class="lang-toggle-label">Form Language</span>
-  <div class="lang-toggle">
-    <button type="button" class="lang-btn active" id="btn-en" onclick="setLanguage('en')">English</button>
-    <button type="button" class="lang-btn" id="btn-ar" onclick="setLanguage('ar')">عربي</button>
-  </div>
-  <input type="hidden" name="active_language" id="active_language" value="{{ (form.active_language if form else (lr.active_language if lr else 'en')) }}">
-</div>
+{# Language synced from navbar toggle #}
+<input type="hidden" name="active_language" id="active_language" value="{{ (form.active_language if form else (lr.active_language if lr else session.get('lang', 'en'))) }}">
 
 <!-- ═══════════════════════════════════════════════
      SHARED: MANAGER DROPDOWN (both languages)
@@ -142,10 +135,6 @@ function setLanguage(lang) {
   document.getElementById('section-en').classList.toggle('section-disabled', lang !== 'en');
   document.getElementById('section-ar').classList.toggle('section-disabled', lang !== 'ar');
 
-  // Toggle buttons
-  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
-  document.getElementById('btn-ar').classList.toggle('active', lang === 'ar');
-
   // Enable/disable inputs inside sections
   document.querySelectorAll('#section-en input:not([disabled]), #section-en textarea').forEach(el => {
     el.disabled = lang !== 'en';
@@ -164,9 +153,10 @@ function setLanguage(lang) {
   document.querySelector('.form-card').style.direction = lang === 'ar' ? 'rtl' : 'ltr';
 }
 
-// Init on page load
+// Sync with navbar language
 (function() {
-  const saved = document.getElementById('active_language').value || 'en';
-  setLanguage(saved);
+  const navLang = document.documentElement.lang === 'ar' ? 'ar' : 'en';
+  document.getElementById('active_language').value = navLang;
+  setLanguage(navLang);
 })();
 </script>
