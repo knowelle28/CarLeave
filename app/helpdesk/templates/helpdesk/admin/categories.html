@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{{ 'فئات التذاكر' if session.get('lang') == 'ar' else 'Help Desk Categories' }}{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'فئات التذاكر' if ar else 'Ticket Categories' }}</h1>
+    <p class="page-subtitle">{{ 'إدارة فئات مكتب المساعدة' if ar else 'Manage help desk categories' }}</p>
+  </div>
+  <a href="{{ url_for('helpdesk.admin_dashboard') }}" class="btn btn-ghost">
+    {{ '→ لوحة الإدارة' if ar else '← Admin Dashboard' }}
+  </a>
+</div>
+
+{% if categories %}
+<div class="table-card" style="margin-bottom:2rem;">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>{{ 'الاسم' if ar else 'Name' }}</th>
+        <th>{{ 'الاسم بالعربية' if ar else 'Name (AR)' }}</th>
+        <th>{{ 'القسم' if ar else 'Department' }}</th>
+        <th>{{ 'القسم بالعربية' if ar else 'Department (AR)' }}</th>
+        <th>{{ 'الحالة' if ar else 'Status' }}</th>
+        <th>{{ 'إجراءات' if ar else 'Actions' }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cat in categories %}
+      <tr>
+        <td style="font-weight:600;">{{ cat.name }}</td>
+        <td style="font-family:'Noto Naskh Arabic',sans-serif;">{{ cat.name_ar or '—' }}</td>
+        <td>{{ cat.department }}</td>
+        <td style="font-family:'Noto Naskh Arabic',sans-serif;">{{ cat.department_ar or '—' }}</td>
+        <td>
+          <span class="badge {% if cat.is_active %}badge-approved{% else %}badge-draft{% endif %}">
+            {{ ('نشط' if cat.is_active else 'معطل') if ar else ('Active' if cat.is_active else 'Inactive') }}
+          </span>
+        </td>
+        <td>
+          <div class="actions-cell">
+            <a href="{{ url_for('helpdesk.admin_edit_category', id=cat.id) }}" class="btn btn-outline btn-sm">
+              {{ 'تعديل' if ar else 'Edit' }}
+            </a>
+            <form method="POST" action="{{ url_for('helpdesk.admin_toggle_category', id=cat.id) }}" style="margin:0;">
+              <button type="submit" class="btn btn-ghost btn-sm">
+                {{ ('إيقاف' if cat.is_active else 'تفعيل') if ar else ('Deactivate' if cat.is_active else 'Activate') }}
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state" style="padding:3rem 2rem;">
+  <div class="empty-icon">🏷</div>
+  <h3>{{ 'لا توجد فئات' if ar else 'No categories yet' }}</h3>
+  <p>{{ 'أضف أول فئة أدناه.' if ar else 'Add your first category below.' }}</p>
+</div>
+{% endif %}
+
+<!-- Add Category form -->
+<div class="form-card" style="max-width:640px;">
+  <div class="detail-card-title">{{ 'إضافة فئة جديدة' if ar else 'Add New Category' }}</div>
+  <form method="POST" action="{{ url_for('helpdesk.admin_categories') }}">
+    <div class="form-row-2">
+      <div class="form-group">
+        <label class="form-label">{{ 'الاسم' if ar else 'Name' }} <span class="required">*</span></label>
+        <input class="form-input" type="text" name="name" placeholder="e.g. IT Support" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ 'الاسم بالعربية' if ar else 'Name (Arabic)' }}</label>
+        <input class="form-input rtl-input" type="text" name="name_ar" placeholder="مثال: دعم تقنية المعلومات">
+      </div>
+    </div>
+    <div class="form-row-2">
+      <div class="form-group">
+        <label class="form-label">{{ 'القسم' if ar else 'Department' }} <span class="required">*</span></label>
+        <input class="form-input" type="text" name="department" placeholder="e.g. IT" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ 'القسم بالعربية' if ar else 'Department (Arabic)' }}</label>
+        <input class="form-input rtl-input" type="text" name="department_ar" placeholder="مثال: تقنية المعلومات">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">
+        + {{ 'إضافة الفئة' if ar else 'Add Category' }}
+      </button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

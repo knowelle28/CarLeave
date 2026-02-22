@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}{{ 'تذكرة دعم جديدة' if session.get('lang') == 'ar' else 'New Support Ticket — Help Desk' }}{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'تذكرة دعم جديدة' if ar else 'New Support Ticket' }}</h1>
+    <p class="page-subtitle">{{ 'اصف مشكلتك وسنرد في أقرب وقت' if ar else 'Describe your issue and we will respond shortly' }}</p>
+  </div>
+  <a href="{{ url_for('helpdesk.dashboard') }}" class="btn btn-ghost">
+    {{ '→ رجوع' if ar else '← Back' }}
+  </a>
+</div>
+
+<div class="form-card" style="max-width:820px;">
+  <!-- Employee info strip -->
+  <div class="form-card-info">
+    <div class="info-row">
+      <span class="info-label">{{ 'الموظف' if ar else 'Employee' }}</span>
+      <span class="info-value">{{ user.full_name }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">{{ 'القسم' if ar else 'Department' }}</span>
+      <span class="info-value">{{ user.department }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">{{ 'رقم الموظف' if ar else 'Employee No.' }}</span>
+      <span class="info-value mono">{{ user.employee_number }}</span>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('helpdesk.new_ticket') }}" id="ticketForm">
+    <input type="hidden" name="active_language" id="active_language" value="en">
+    <input type="hidden" name="ui_lang" value="{{ session.get('lang', 'en') }}">
+
+    <!-- English section -->
+    <div id="section-en" class="lang-section">
+      <div class="lang-section-header en-header">English Fields</div>
+      <div class="form-group">
+        <label class="form-label">Title <span class="required">*</span></label>
+        <input class="form-input" type="text" name="title" placeholder="Brief summary of your issue">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-input form-textarea" name="description" rows="4"
+                  placeholder="Please describe the issue in detail..."></textarea>
+      </div>
+    </div>
+
+    <!-- Arabic section -->
+    <div id="section-ar" class="lang-section" dir="rtl">
+      <div class="lang-section-header ar-header">الحقول العربية</div>
+      <div class="form-group">
+        <label class="form-label">العنوان <span class="required">*</span></label>
+        <input class="form-input rtl-input" type="text" name="title_ar"
+               placeholder="ملخص موجز للمشكلة">
+      </div>
+      <div class="form-group">
+        <label class="form-label">الوصف</label>
+        <textarea class="form-input form-textarea rtl-input" name="description_ar" rows="4"
+                  placeholder="يرجى وصف المشكلة بالتفصيل..."></textarea>
+      </div>
+    </div>
+
+    <!-- Shared fields -->
+    <div class="lang-section-header shared-header">
+      {{ 'الفئة والأولوية' if ar else 'Category & Priority' }}
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-group">
+        <label class="form-label">{{ 'الفئة' if ar else 'Category' }} <span class="required">*</span></label>
+        <select class="form-input form-select" name="category_id" required>
+          <option value="" disabled selected>— {{ 'اختر الفئة' if ar else 'Select category' }} —</option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}">
+            {{ cat.name_ar if ar and cat.name_ar else cat.name }}
+            ({{ cat.department_ar if ar and cat.department_ar else cat.department }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ 'الأولوية' if ar else 'Priority' }}</label>
+        <select class="form-input form-select" name="priority">
+          <option value="low">{{ 'منخفضة' if ar else 'Low' }}</option>
+          <option value="normal" selected>{{ 'عادية' if ar else 'Normal' }}</option>
+          <option value="high">{{ 'عالية' if ar else 'High' }}</option>
+          <option value="urgent">{{ 'عاجلة' if ar else 'Urgent' }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ url_for('helpdesk.dashboard') }}" class="btn btn-outline">
+        {{ 'إلغاء' if ar else 'Cancel' }}
+      </a>
+      <button type="submit" class="btn btn-primary">
+        {{ 'تقديم التذكرة' if ar else 'Submit Ticket' }}
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+function setLanguage(lang) {
+  document.getElementById('active_language').value = lang;
+  const enSection = document.getElementById('section-en');
+  const arSection = document.getElementById('section-ar');
+  enSection.classList.toggle('section-disabled', lang !== 'en');
+  arSection.classList.toggle('section-disabled', lang !== 'ar');
+  enSection.querySelectorAll('input,textarea').forEach(el => el.disabled = lang !== 'en');
+  arSection.querySelectorAll('input,textarea').forEach(el => el.disabled = lang !== 'ar');
+}
+// Sync with navbar language
+(function(){
+  const navLang = document.documentElement.lang === 'ar' ? 'ar' : 'en';
+  setLanguage(navLang);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ 'الإشعارات' if session.get('lang') == 'ar' else 'Notifications' }}{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'الإشعارات' if ar else 'Notifications' }}</h1>
+    <p class="page-subtitle">
+      {% set unread_count = notifs | selectattr('is_read', 'equalto', false) | list | length %}
+      {% if unread_count > 0 %}
+        {{ unread_count }} {{ 'إشعار غير مقروء' if ar else 'unread notification' }}{{ '' if unread_count == 1 else ('ات' if ar else 's') }}
+      {% else %}
+        {{ 'كل الإشعارات مقروءة' if ar else 'All caught up' }}
+      {% endif %}
+    </p>
+  </div>
+  {% if notifs | selectattr('is_read', 'equalto', false) | list | length > 0 %}
+  <form method="POST" action="{{ url_for('helpdesk.mark_all_read') }}">
+    <button type="submit" class="btn btn-outline">
+      ✓ {{ 'تعيين الكل كمقروء' if ar else 'Mark All Read' }}
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+{% if notifs %}
+<div class="table-card" style="overflow:hidden;">
+  {% for n in notifs %}
+  <div class="notification-item {% if not n.is_read %}unread{% endif %}">
+    <div class="notification-dot {% if n.is_read %}read{% endif %}"></div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:0.875rem;font-weight:{% if not n.is_read %}600{% else %}500{% endif %};margin-bottom:0.2rem;">
+        {{ n.title_ar if ar and n.title_ar else n.title }}
+      </div>
+      {% set body = n.body_ar if ar and n.body_ar else n.body %}
+      {% if body %}
+      <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.3rem;
+                  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:600px;">
+        {{ body }}
+      </div>
+      {% endif %}
+      <div style="font-size:0.75rem;color:var(--text-faint);">
+        {{ n.created_at.strftime('%d %b %Y, %I:%M %p') }}
+      </div>
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:center;flex-shrink:0;">
+      {% if n.link %}
+      <a href="{{ n.link }}" class="btn btn-ghost btn-sm">
+        {{ '← عرض' if ar else 'View →' }}
+      </a>
+      {% endif %}
+      {% if not n.is_read %}
+      <form method="POST" action="{{ url_for('helpdesk.mark_read', id=n.id) }}" style="margin:0;">
+        <button type="submit" class="btn btn-outline btn-sm">
+          {{ 'تعيين كمقروء' if ar else 'Mark Read' }}
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">🔔</div>
+  <h3>{{ 'لا توجد إشعارات' if ar else 'No notifications' }}</h3>
+  <p>{{ 'ستظهر هنا إشعاراتك عند وصولها.' if ar else 'Your notifications will appear here.' }}</p>
+</div>
+{% endif %}
+
+{% endblock %}

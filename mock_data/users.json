@@ -3,5 +3,6 @@
   {"username":"acruz","password":"test123","full_name":"Ana Cruz","department":"Operations","employee_number":"EMP002","is_manager":false,"is_admin":false},
   {"username":"jsmith","password":"test123","full_name":"Jane Smith","department":"Finance","employee_number":"MGR001","is_manager":true,"is_admin":false},
   {"username":"breyes","password":"test123","full_name":"Bob Reyes","department":"Operations","employee_number":"MGR002","is_manager":true,"is_admin":false},
-  {"username":"hradmin","password":"admin123","full_name":"HR Administrator","department":"Human Resources","employee_number":"HR001","is_manager":false,"is_admin":true}
+  {"username":"hradmin","password":"admin123","full_name":"HR Administrator","department":"Human Resources","employee_number":"HR001","is_manager":false,"is_admin":true},
+  {"username":"itstaff","password":"test123","full_name":"IT Support Agent","department":"IT","employee_number":"EMP010","is_manager":false,"is_admin":false}
 ]

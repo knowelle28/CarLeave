@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}{{ ticket.ticket_number }} — Help Desk{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+{% set display_title = ticket.title_ar if ar and ticket.title_ar else ticket.title %}
+{% set display_desc  = ticket.description_ar if ar and ticket.description_ar else ticket.description %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <span class="mono" style="color:var(--accent);font-size:1rem;">{{ ticket.ticket_number }}</span>
+      <br>{{ display_title }}
+    </h1>
+  </div>
+  <a href="{{ url_for('helpdesk.dashboard') }}" class="btn btn-ghost">
+    {{ '→ رجوع' if ar else '← Back' }}
+  </a>
+</div>
+
+<div class="detail-grid" style="margin-bottom:1.5rem;">
+
+  <!-- Left: ticket metadata -->
+  <div class="detail-card">
+    <div class="detail-card-title">{{ 'تفاصيل التذكرة' if ar else 'Ticket Details' }}</div>
+    <div class="detail-rows">
+      <div class="detail-row">
+        <span>{{ 'الفئة' if ar else 'Category' }}</span>
+        <span>{{ ticket.category.name_ar if ar and ticket.category.name_ar else ticket.category.name }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'القسم' if ar else 'Department' }}</span>
+        <span>{{ ticket.category.department_ar if ar and ticket.category.department_ar else ticket.category.department }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'الحالة' if ar else 'Status' }}</span>
+        <span><span class="badge {{ ticket.status_badge_class() }}">
+          {% if ar %}
+            {% if ticket.status == 'open' %}مفتوح{% elif ticket.status == 'in_progress' %}قيد المعالجة{% elif ticket.status == 'resolved' %}محلول{% else %}مغلق{% endif %}
+          {% else %}
+            {{ ticket.status.replace('_',' ') | title }}
+          {% endif %}
+        </span></span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'الأولوية' if ar else 'Priority' }}</span>
+        <span><span class="badge {{ ticket.priority_badge_class() }}">
+          {% if ar %}
+            {% if ticket.priority == 'low' %}منخفضة{% elif ticket.priority == 'normal' %}عادية{% elif ticket.priority == 'high' %}عالية{% else %}عاجلة{% endif %}
+          {% else %}
+            {{ ticket.priority | title }}
+          {% endif %}
+        </span></span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'مقدم بواسطة' if ar else 'Submitted By' }}</span>
+        <span>{{ ticket.created_by_name_ar if ar and ticket.created_by_name_ar else ticket.created_by_name }}</span>
+      </div>
+      <div class="detail-row">
+        <span>{{ 'تاريخ التقديم' if ar else 'Submitted' }}</span>
+        <span>{{ ticket.created_at.strftime('%d %b %Y, %I:%M %p') }}</span>
+      </div>
+      {% if ticket.assigned_to_username %}
+      <div class="detail-row">
+        <span>{{ 'مسند إلى' if ar else 'Assigned To' }}</span>
+        <span class="mono">{{ ticket.assigned_to_username }}</span>
+      </div>
+      {% endif %}
+    </div>
+    {% if display_desc %}
+    <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:0.5rem;">
+        {{ 'الوصف' if ar else 'Description' }}
+      </div>
+      <div style="font-size:0.9rem;line-height:1.6;white-space:pre-wrap;">{{ display_desc }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right: staff/admin actions -->
+  {% if is_staff or is_admin %}
+  <div class="detail-card">
+    <div class="detail-card-title">{{ 'إجراءات الدعم' if ar else 'Staff Actions' }}</div>
+
+    <!-- Assign -->
+    {% if not ticket.assigned_to_username or ticket.assigned_to_username != session.user.username %}
+    <form method="POST" action="{{ url_for('helpdesk.staff_assign', id=ticket.id) }}" style="margin-bottom:1rem;">
+      <button type="submit" class="btn btn-outline btn-sm">
+        🙋 {{ 'استلام التذكرة' if ar else 'Assign to Me' }}
+      </button>
+    </form>
+    {% else %}
+    <p style="font-size:0.82rem;color:var(--accent);margin-bottom:1rem;font-weight:600;">
+      ✓ {{ 'هذه التذكرة مسندة إليك' if ar else 'This ticket is assigned to you' }}
+    </p>
+    {% endif %}
+
+    <!-- Change Status -->
+    <form method="POST" action="{{ url_for('helpdesk.staff_change_status', id=ticket.id) }}" style="margin-bottom:1rem;">
+      <label class="form-label">{{ 'تغيير الحالة' if ar else 'Change Status' }}</label>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        {% for s, label_en, label_ar in [
+            ('open','Open','مفتوح'),
+            ('in_progress','In Progress','قيد المعالجة'),
+            ('resolved','Resolved','محلول'),
+            ('closed','Closed','مغلق')
+        ] %}
+        <button type="submit" name="status" value="{{ s }}"
+                class="btn btn-sm {% if ticket.status == s %}btn-primary{% else %}btn-outline{% endif %}">
+          {{ label_ar if ar else label_en }}
+        </button>
+        {% endfor %}
+      </div>
+    </form>
+
+    <!-- Change Priority -->
+    <form method="POST" action="{{ url_for('helpdesk.staff_change_priority', id=ticket.id) }}">
+      <label class="form-label">{{ 'تغيير الأولوية' if ar else 'Change Priority' }}</label>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        {% for p, label_en, label_ar in [
+            ('low','Low','منخفضة'),
+            ('normal','Normal','عادية'),
+            ('high','High','عالية'),
+            ('urgent','Urgent','عاجلة')
+        ] %}
+        <button type="submit" name="priority" value="{{ p }}"
+                class="btn btn-sm {% if ticket.priority == p %}btn-primary{% else %}btn-outline{% endif %}">
+          {{ label_ar if ar else label_en }}
+        </button>
+        {% endfor %}
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <!-- Placeholder for user view — keeps 2-col layout on larger screens -->
+  <div></div>
+  {% endif %}
+
+</div>
+
+<!-- Message Thread -->
+<div style="margin-bottom:1.5rem;">
+  <h2 style="font-size:1rem;font-weight:700;margin-bottom:1rem;">
+    {{ 'المحادثة' if ar else 'Conversation' }}
+    <span style="font-size:0.82rem;font-weight:400;color:var(--text-muted);">({{ ticket.messages | length }})</span>
+  </h2>
+
+  {% if not ticket.messages %}
+  <div class="ticket-message" style="color:var(--text-muted);font-size:0.875rem;">
+    {{ 'لا توجد ردود بعد.' if ar else 'No replies yet.' }}
+  </div>
+  {% endif %}
+
+  {% for msg in ticket.messages %}
+  <div class="ticket-message {% if msg.is_staff_reply %}staff-reply{% endif %}">
+    <div class="ticket-message-header">
+      <span class="ticket-message-sender">
+        {% if msg.is_staff_reply %}🛡️ {% endif %}
+        {{ msg.sender_name_ar if ar and msg.sender_name_ar else msg.sender_name }}
+        {% if msg.is_staff_reply %}
+        <span style="font-size:0.72rem;font-weight:400;color:var(--accent);margin-{{ 'right' if ar else 'left' }}:0.4rem;">
+          {{ 'فريق الدعم' if ar else 'Support Staff' }}
+        </span>
+        {% endif %}
+      </span>
+      <span class="ticket-message-time">{{ msg.created_at.strftime('%d %b %Y, %I:%M %p') }}</span>
+    </div>
+    <div class="ticket-message-body">{{ msg.body_ar if ar and msg.body_ar else msg.body }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Reply Form -->
+{% if ticket.status not in ['closed'] %}
+  {% if is_owner %}
+  <div class="form-card" style="max-width:100%;">
+    <div class="detail-card-title">{{ 'إرسال رد' if ar else 'Send a Reply' }}</div>
+    <form method="POST" action="{{ url_for('helpdesk.user_reply', id=ticket.id) }}">
+      <input type="hidden" name="ui_lang" value="{{ session.get('lang', 'en') }}">
+      <div class="form-group">
+        <textarea class="form-input form-textarea {% if ar %}rtl-input{% endif %}" name="body" rows="4"
+                  placeholder="{{ 'اكتب ردك هنا...' if ar else 'Write your reply here...' }}" required></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">
+          {{ 'إرسال الرد' if ar else 'Send Reply' }}
+        </button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if is_staff or is_admin %}
+  <div class="form-card" style="max-width:100%;margin-top:1rem;">
+    <div class="detail-card-title">{{ 'رد فريق الدعم' if ar else 'Staff Reply' }}</div>
+    <form method="POST" action="{{ url_for('helpdesk.staff_reply', id=ticket.id) }}">
+      <input type="hidden" name="ui_lang" value="{{ session.get('lang', 'en') }}">
+      <div class="form-group">
+        <textarea class="form-input form-textarea {% if ar %}rtl-input{% endif %}" name="body" rows="4"
+                  placeholder="{{ 'اكتب ردك كفريق الدعم...' if ar else 'Write your staff reply...' }}" required></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">
+          🛡️ {{ 'إرسال رد الدعم' if ar else 'Send Staff Reply' }}
+        </button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+{% else %}
+<div class="empty-state" style="padding:2rem;">
+  <p style="color:var(--text-muted);">{{ 'هذه التذكرة مغلقة.' if ar else 'This ticket is closed.' }}</p>
+</div>
+{% endif %}
+
+{% endblock %}

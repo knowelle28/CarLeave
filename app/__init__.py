@@ -27,6 +27,32 @@ def create_app():
     from .cars import cars_bp
     app.register_blueprint(cars_bp)
 
+    # Register Help Desk blueprint
+    from .helpdesk import helpdesk_bp
+    app.register_blueprint(helpdesk_bp)
+
+    @app.context_processor
+    def inject_helpdesk_globals():
+        from flask import session as _session
+        user = _session.get("user")
+        if not user:
+            return {"unread_notifications": 0, "is_helpdesk_staff": False}
+        try:
+            from app.helpdesk.models import Notification, HelpDeskStaff
+            username = user.get("username", "")
+            unread = Notification.query.filter_by(
+                recipient_username=username, is_read=False
+            ).count()
+            staff = HelpDeskStaff.query.filter_by(
+                username=username, is_active=True
+            ).first()
+            return {
+                "unread_notifications": unread,
+                "is_helpdesk_staff": staff is not None,
+            }
+        except Exception:
+            return {"unread_notifications": 0, "is_helpdesk_staff": False}
+
     with app.app_context():
         db.create_all()
         # Seed 5 placeholder cars if fleet is empty

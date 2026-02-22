@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{{ 'إدارة مكتب المساعدة' if session.get('lang') == 'ar' else 'Help Desk Admin' }}{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'إدارة مكتب المساعدة' if ar else 'Help Desk Admin' }}</h1>
+    <p class="page-subtitle">{{ 'جميع التذاكر' if ar else 'All tickets' }} ({{ tickets | length }})</p>
+  </div>
+  <div style="display:flex;gap:0.5rem;">
+    <a href="{{ url_for('helpdesk.admin_categories') }}" class="btn btn-outline btn-sm">🏷 {{ 'الفئات' if ar else 'Categories' }}</a>
+    <a href="{{ url_for('helpdesk.admin_staff') }}" class="btn btn-outline btn-sm">👥 {{ 'فريق الدعم' if ar else 'Staff' }}</a>
+  </div>
+</div>
+
+<!-- Filters -->
+<div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center;">
+  <!-- Department -->
+  <form method="GET" action="{{ url_for('helpdesk.admin_dashboard') }}" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+    <input type="hidden" name="status" value="{{ status_filter }}">
+    <input type="hidden" name="priority" value="{{ priority_filter }}">
+    <select name="department" class="form-input form-select" style="max-width:200px;padding:0.4rem 0.75rem;font-size:0.82rem;"
+            onchange="this.form.submit()">
+      <option value="all" {% if dept_filter == 'all' %}selected{% endif %}>
+        {{ 'كل الأقسام' if ar else 'All Departments' }}
+      </option>
+      {% for d in departments %}
+      <option value="{{ d }}" {% if dept_filter == d %}selected{% endif %}>{{ d }}</option>
+      {% endfor %}
+    </select>
+    <!-- Priority -->
+    <select name="priority" class="form-input form-select" style="max-width:160px;padding:0.4rem 0.75rem;font-size:0.82rem;"
+            onchange="this.form.submit()">
+      {% for p, label_en, label_ar in [
+          ('all','All Priorities','كل الأولويات'),
+          ('urgent','Urgent','عاجلة'),
+          ('high','High','عالية'),
+          ('normal','Normal','عادية'),
+          ('low','Low','منخفضة')
+      ] %}
+      <option value="{{ p }}" {% if priority_filter == p %}selected{% endif %}>{{ label_ar if ar else label_en }}</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
+<!-- Status tabs -->
+<div class="filter-tabs">
+  {% for s, label_en, label_ar in [
+      ('all','All','الكل'),
+      ('open','Open','مفتوح'),
+      ('in_progress','In Progress','قيد المعالجة'),
+      ('resolved','Resolved','محلول'),
+      ('closed','Closed','مغلق')
+  ] %}
+  <a href="{{ url_for('helpdesk.admin_dashboard', status=s, priority=priority_filter, department=dept_filter) }}"
+     class="filter-tab {% if status_filter == s %}active{% endif %}">
+    {{ label_ar if ar else label_en }}
+  </a>
+  {% endfor %}
+</div>
+
+{% if tickets %}
+<div class="table-card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>{{ 'رقم التذكرة' if ar else 'Ticket No.' }}</th>
+        <th>{{ 'مقدم بواسطة' if ar else 'Requester' }}</th>
+        <th>{{ 'العنوان' if ar else 'Title' }}</th>
+        <th>{{ 'الفئة / القسم' if ar else 'Category / Dept' }}</th>
+        <th>{{ 'الأولوية' if ar else 'Priority' }}</th>
+        <th>{{ 'الحالة' if ar else 'Status' }}</th>
+        <th>{{ 'مسند إلى' if ar else 'Assigned' }}</th>
+        <th>{{ 'التحديث' if ar else 'Updated' }}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in tickets %}
+      <tr>
+        <td><span class="mono" style="font-weight:700;color:var(--accent);">{{ t.ticket_number }}</span></td>
+        <td style="font-size:0.875rem;">{{ t.created_by_name_ar if ar and t.created_by_name_ar else t.created_by_name }}</td>
+        <td>{{ t.title_ar if ar and t.title_ar else t.title }}</td>
+        <td style="font-size:0.82rem;color:var(--text-muted);">
+          {{ t.category.name_ar if ar and t.category.name_ar else t.category.name }}<br>
+          <span style="font-size:0.75rem;">{{ t.category.department }}</span>
+        </td>
+        <td><span class="badge {{ t.priority_badge_class() }}">
+          {% if ar %}
+            {% if t.priority == 'low' %}منخفضة{% elif t.priority == 'normal' %}عادية{% elif t.priority == 'high' %}عالية{% else %}عاجلة{% endif %}
+          {% else %}
+            {{ t.priority | title }}
+          {% endif %}
+        </span></td>
+        <td><span class="badge {{ t.status_badge_class() }}">
+          {% if ar %}
+            {% if t.status == 'open' %}مفتوح{% elif t.status == 'in_progress' %}قيد المعالجة{% elif t.status == 'resolved' %}محلول{% else %}مغلق{% endif %}
+          {% else %}
+            {{ t.status.replace('_',' ') | title }}
+          {% endif %}
+        </span></td>
+        <td style="font-size:0.82rem;color:var(--text-muted);" class="mono">
+          {{ t.assigned_to_username or '—' }}
+        </td>
+        <td style="color:var(--text-muted);font-size:0.82rem;">{{ t.updated_at.strftime('%d %b %Y') }}</td>
+        <td>
+          <a href="{{ url_for('helpdesk.ticket_detail', id=t.id) }}" class="btn btn-ghost btn-sm">
+            {{ '← عرض' if ar else 'View →' }}
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">🎫</div>
+  <h3>{{ 'لا توجد تذاكر' if ar else 'No tickets' }}</h3>
+  <p>{{ 'لا توجد تذاكر تطابق المرشحات الحالية.' if ar else 'No tickets match the current filters.' }}</p>
+</div>
+{% endif %}
+
+{% endblock %}

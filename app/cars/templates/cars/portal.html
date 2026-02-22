@@ -40,6 +40,19 @@
     <div class="portal-card-arrow">{{ '←' if ar else '→' }}</div>
   </a>
 
+  <a href="{{ url_for('helpdesk.dashboard') }}" class="portal-card">
+    <div class="portal-card-icon" style="background:#fef9ec;">🎫</div>
+    <div class="portal-card-body">
+      <h2 class="portal-card-title">
+        {{ 'مكتب المساعدة' if ar else 'Help Desk' }}
+      </h2>
+      <p class="portal-card-desc">
+        {{ 'تقديم تذاكر الدعم ومتابعة حالتها' if ar else 'Submit support tickets and track their status' }}
+      </p>
+    </div>
+    <div class="portal-card-arrow">{{ '←' if ar else '→' }}</div>
+  </a>
+
 </div>
 
 {% if session.user.is_admin %}
@@ -56,6 +69,9 @@
     </a>
     <a href="{{ url_for('cars.admin_fleet') }}" class="btn btn-outline btn-sm">
       🔧 {{ 'إدارة الأسطول' if ar else 'Manage Fleet' }}
+    </a>
+    <a href="{{ url_for('helpdesk.admin_dashboard') }}" class="btn btn-outline btn-sm">
+      🎫 {{ 'إدارة مكتب المساعدة' if ar else 'Help Desk Admin' }}
     </a>
   </div>
 </div>

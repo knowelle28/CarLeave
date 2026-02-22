@@ -37,6 +37,22 @@
         {{ 'حجز السيارات' if session.get('lang') == 'ar' else 'Car Booking' }}
       </a>
 
+      <a href="{{ url_for('helpdesk.dashboard') }}"
+         class="nav-link {% if request.blueprint == 'helpdesk' and request.endpoint not in ['helpdesk.staff_dashboard','helpdesk.notifications','helpdesk.admin_dashboard','helpdesk.admin_categories','helpdesk.admin_edit_category','helpdesk.admin_staff'] %}active{% endif %}">
+        {{ 'مكتب المساعدة' if session.get('lang') == 'ar' else 'Help Desk' }}
+      </a>
+
+      {% if is_helpdesk_staff %}
+      <a href="{{ url_for('helpdesk.staff_dashboard') }}"
+         class="nav-link {% if request.endpoint == 'helpdesk.staff_dashboard' %}active{% endif %}">
+        {{ 'لوحة الدعم' if session.get('lang') == 'ar' else 'Staff Panel' }}
+      </a>
+      {% endif %}
+
+      <a href="{{ url_for('helpdesk.notifications') }}" class="nav-bell">
+        🔔{% if unread_notifications > 0 %}<span class="nav-bell-badge">{{ unread_notifications }}</span>{% endif %}
+      </a>
+
       {% if session.user.is_admin %}
       <div class="nav-dropdown">
         <button class="nav-link nav-dropdown-toggle">
@@ -58,6 +74,16 @@
           </a>
           <a href="{{ url_for('cars.admin_reports') }}" class="nav-dropdown-item">
             📊 {{ 'التقارير' if session.get('lang') == 'ar' else 'Reports' }}
+          </a>
+          <div class="nav-dropdown-divider"></div>
+          <a href="{{ url_for('helpdesk.admin_dashboard') }}" class="nav-dropdown-item">
+            🎫 {{ 'إدارة مكتب المساعدة' if session.get('lang') == 'ar' else 'Help Desk Admin' }}
+          </a>
+          <a href="{{ url_for('helpdesk.admin_categories') }}" class="nav-dropdown-item">
+            🏷 {{ 'فئات التذاكر' if session.get('lang') == 'ar' else 'HD Categories' }}
+          </a>
+          <a href="{{ url_for('helpdesk.admin_staff') }}" class="nav-dropdown-item">
+            👥 {{ 'فريق الدعم' if session.get('lang') == 'ar' else 'HD Staff' }}
           </a>
         </div>
       </div>

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{{ 'تذاكري — مكتب المساعدة' if session.get('lang') == 'ar' else 'My Tickets — Help Desk' }}{% endblock %}
+{% block content %}
+{% set ar = session.get('lang') == 'ar' %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'تذاكري' if ar else 'My Tickets' }}</h1>
+    <p class="page-subtitle">{{ 'تذاكر الدعم التي قدمتها' if ar else 'Your support ticket history' }}</p>
+  </div>
+  <a href="{{ url_for('helpdesk.new_ticket') }}" class="btn btn-primary">
+    + {{ 'تذكرة جديدة' if ar else 'New Ticket' }}
+  </a>
+</div>
+
+<div class="filter-tabs">
+  {% for s, label_en, label_ar in [
+      ('all','All','الكل'),
+      ('open','Open','مفتوح'),
+      ('in_progress','In Progress','قيد المعالجة'),
+      ('resolved','Resolved','محلول'),
+      ('closed','Closed','مغلق')
+  ] %}
+  <a href="{{ url_for('helpdesk.dashboard', status=s) }}"
+     class="filter-tab {% if status_filter == s %}active{% endif %}">
+    {{ label_ar if ar else label_en }}
+  </a>
+  {% endfor %}
+</div>
+
+{% if tickets %}
+<div class="table-card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>{{ 'رقم التذكرة' if ar else 'Ticket No.' }}</th>
+        <th>{{ 'العنوان' if ar else 'Title' }}</th>
+        <th>{{ 'الفئة' if ar else 'Category' }}</th>
+        <th>{{ 'الأولوية' if ar else 'Priority' }}</th>
+        <th>{{ 'الحالة' if ar else 'Status' }}</th>
+        <th>{{ 'التاريخ' if ar else 'Created' }}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in tickets %}
+      <tr>
+        <td><span class="mono" style="font-weight:700;color:var(--accent);">{{ t.ticket_number }}</span></td>
+        <td>{{ t.title_ar if ar and t.title_ar else t.title }}</td>
+        <td>{{ t.category.name_ar if ar and t.category.name_ar else t.category.name }}</td>
+        <td><span class="badge {{ t.priority_badge_class() }}">
+          {% if ar %}
+            {% if t.priority == 'low' %}منخفضة{% elif t.priority == 'normal' %}عادية{% elif t.priority == 'high' %}عالية{% else %}عاجلة{% endif %}
+          {% else %}
+            {{ t.priority | title }}
+          {% endif %}
+        </span></td>
+        <td><span class="badge {{ t.status_badge_class() }}">
+          {% if ar %}
+            {% if t.status == 'open' %}مفتوح{% elif t.status == 'in_progress' %}قيد المعالجة{% elif t.status == 'resolved' %}محلول{% else %}مغلق{% endif %}
+          {% else %}
+            {{ t.status.replace('_',' ') | title }}
+          {% endif %}
+        </span></td>
+        <td style="color:var(--text-muted);font-size:0.82rem;">{{ t.created_at.strftime('%d %b %Y') }}</td>
+        <td>
+          <a href="{{ url_for('helpdesk.ticket_detail', id=t.id) }}" class="btn btn-ghost btn-sm">
+            {{ '←' if ar else '→' }}
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">🎫</div>
+  <h3>{{ 'لا توجد تذاكر' if ar else 'No tickets yet' }}</h3>
+  <p>{{ 'لم تقدم أي تذاكر دعم بعد.' if ar else 'You have not submitted any support tickets yet.' }}</p>
+  <a href="{{ url_for('helpdesk.new_ticket') }}" class="btn btn-primary" style="margin-top:1rem;">
+    {{ 'تقديم تذكرة' if ar else 'Submit a Ticket' }}
+  </a>
+</div>
+{% endif %}
+
+{% endblock %}
