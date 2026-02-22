@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ 'حجز جديد' if session.get('lang') == 'ar' else 'New Car Booking — LeavePass' }}<script src="{{ url_for('static', filename='js/booking_validation.js') }}"></script>
+{% block title %}{{ 'حجز جديد' if session.get('lang') == 'ar' else 'New Car Booking — Employee Applications Portal' }}<script src="{{ url_for('static', filename='js/booking_validation.js') }}"></script>
 {% endblock %}
 {% block content %}
 {% set ar = session.get('lang') == 'ar' %}

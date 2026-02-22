@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ 'تعديل ' + lr.request_number + ' — LeavePass' if session.get('lang') == 'ar' else 'Edit ' + lr.request_number + ' — LeavePass' }}{% endblock %}
+{% block title %}{{ 'تعديل ' + lr.request_number + ' — Employee Applications Portal' if session.get('lang') == 'ar' else 'Edit ' + lr.request_number + ' — Employee Applications Portal' }}{% endblock %}
 {% block content %}
 {% set ar = session.get('lang') == 'ar' %}
 <div class="page-header">
