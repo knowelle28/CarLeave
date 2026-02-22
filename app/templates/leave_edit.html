@@ -35,7 +35,7 @@
     </div>
   </div>
   <form method="POST" action="{{ url_for('main.edit_leave', id=lr.id) }}" id="leaveForm">
-  <input type="hidden" name="ui_lang" value="{{ session.get(\'lang\', \'en\') }}">
+  <input type="hidden" name="ui_lang" value="{{ session.get('lang', 'en') }}">
     {% include 'partials/form_fields.html' %}
     <div class="form-actions">
       <button type="submit" name="action" value="save" class="btn btn-outline">
