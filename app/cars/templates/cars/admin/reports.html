@@ -284,7 +284,17 @@ function setReportType(type) {
   event.currentTarget.classList.add('active');
   document.getElementById('car-selector-wrap').style.display  = type === 'car'  ? 'block' : 'none';
   document.getElementById('user-selector-wrap').style.display = type === 'user' ? 'block' : 'none';
+  // Disable the hidden select so it doesn't submit
+  document.getElementById('car_select').disabled  = type !== 'car';
+  document.getElementById('user_select').disabled = type !== 'user';
 }
+
+// On page load, disable the inactive select
+document.addEventListener('DOMContentLoaded', function() {
+  const type = document.getElementById('report_type_input').value || 'car';
+  document.getElementById('car_select').disabled  = type !== 'car';
+  document.getElementById('user_select').disabled = type !== 'user';
+});
 </script>
 
 <style>
