@@ -1,0 +1,46 @@
+commit a661c3dc647b337bcee87373b4ddaf3671d01846
+Author: Noel Manansala <knowelle@gmail.com>
+Date:   Sun Feb 22 10:23:39 2026 +0400
+
+    Initial commit — LeavePass + Car Booking app
+
+ .gitignore                                        |    8 +
+ Dockerfile                                        |    8 +
+ app/__init__.py                                   |   62 ++
+ app/auth.py                                       |   54 ++
+ app/cars/__init__.py                              |    5 +
+ app/cars/models.py                                |   94 ++
+ app/cars/routes.py                                |  457 +++++++++
+ app/cars/templates/cars/admin/bookings.html       |  196 ++++
+ app/cars/templates/cars/admin/car_form.html       |  182 ++++
+ app/cars/templates/cars/admin/fleet.html          |   82 ++
+ app/cars/templates/cars/admin/reports.html        |  296 ++++++
+ app/cars/templates/cars/admin/return_confirm.html |  118 +++
+ app/cars/templates/cars/booking_detail.html       |  125 +++
+ app/cars/templates/cars/booking_form.html         |  342 +++++++
+ app/cars/templates/cars/checkout_form.html        |   64 ++
+ app/cars/templates/cars/dashboard.html            |  101 ++
+ app/cars/templates/cars/portal.html               |   64 ++
+ app/cars/templates/cars/return_form.html          |   65 ++
+ app/models.py                                     |   55 ++
+ app/routes.py                                     |  286 ++++++
+ app/static/css/main.css                           | 1061 +++++++++++++++++++++
+ app/static/css/print.css                          |   65 ++
+ app/static/js/booking_validation.js               |   57 ++
+ app/static/js/main.js                             |   19 +
+ app/templates/admin/dashboard.html                |   64 ++
+ app/templates/admin/record_view.html              |  105 ++
+ app/templates/base.html                           |   97 ++
+ app/templates/dashboard.html                      |   63 ++
+ app/templates/leave_edit.html                     |   50 +
+ app/templates/leave_form.html                     |   42 +
+ app/templates/login.html                          |   68 ++
+ app/templates/partials/form_fields.html           |  172 ++++
+ app/templates/print_slip.html                     |  292 ++++++
+ config/dev.py                                     |    8 +
+ deploy.sh                                         |   13 +
+ docker-compose.yml                                |   35 +
+ mock_data/users.json                              |    7 +
+ requirements.txt                                  |    7 +
+ run.py                                            |    4 +
+ 39 files changed, 4893 insertions(+)

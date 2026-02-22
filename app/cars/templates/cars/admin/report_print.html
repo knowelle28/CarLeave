@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="{{ session.get('lang', 'en') }}" dir="{{ 'rtl' if session.get('lang') == 'ar' else 'ltr' }}">
+<head>
+<meta charset="UTF-8">
+<title>{{ report_title }} — Vehicle Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 11pt;
+    color: #000;
+    padding: 20mm 15mm;
+  }
+  .report-header {
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
+  .report-header h1 {
+    font-size: 16pt;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+  .report-meta {
+    font-size: 9pt;
+    color: #444;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .report-meta span { display: inline-block; }
+  .report-stats {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 14px;
+    padding: 8px 12px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    font-size: 10pt;
+  }
+  .stat-item { display: flex; flex-direction: column; }
+  .stat-val { font-size: 14pt; font-weight: bold; }
+  .stat-label { font-size: 8pt; color: #555; text-transform: uppercase; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+    margin-top: 8px;
+  }
+  thead tr {
+    background: #222;
+    color: #fff;
+  }
+  thead th {
+    padding: 7px 8px;
+    text-align: left;
+    font-weight: bold;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid #e0e0e0; }
+  tbody tr:nth-child(even) { background: #f9f9f9; }
+  tbody tr:last-child { border-bottom: 2px solid #000; }
+  tbody td {
+    padding: 6px 8px;
+    vertical-align: top;
+  }
+  .td-mono { font-family: monospace; font-size: 9pt; }
+  .td-note {
+    background: #fffbea;
+    color: #7a4f00;
+    font-size: 8.5pt;
+    font-style: italic;
+    padding: 3px 8px 6px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .status-pill {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 99px;
+    font-size: 8pt;
+    font-weight: bold;
+    border: 1px solid #ccc;
+  }
+  .s-pending  { border-color: #f59e0b; color: #92400e; background: #fef3c7; }
+  .s-borrowed { border-color: #3b82f6; color: #1e40af; background: #dbeafe; }
+  .s-returned { border-color: #22c55e; color: #166534; background: #dcfce7; }
+  .s-archived { border-color: #9ca3af; color: #374151; background: #f3f4f6; }
+  .report-footer {
+    margin-top: 20px;
+    border-top: 1px solid #ccc;
+    padding-top: 8px;
+    font-size: 8pt;
+    color: #666;
+    display: flex;
+    justify-content: space-between;
+  }
+  @media print {
+    body { padding: 10mm 10mm; }
+    .no-print { display: none !important; }
+  }
+</style>
+</head>
+<body>
+{% set ar = session.get('lang') == 'ar' %}
+
+<!-- Print button (hidden when printing) -->
+<div class="no-print" style="margin-bottom:16px;">
+  <button onclick="window.print()" style="padding:8px 20px;font-size:10pt;cursor:pointer;
+    background:#222;color:#fff;border:none;border-radius:4px;margin-right:8px;">
+    🖨 {{ 'طباعة' if ar else 'Print' }}
+  </button>
+  <button onclick="window.close()" style="padding:8px 20px;font-size:10pt;cursor:pointer;
+    background:#eee;color:#222;border:1px solid #ccc;border-radius:4px;">
+    {{ 'إغلاق' if ar else 'Close' }}
+  </button>
+</div>
+
+<!-- Header -->
+<div class="report-header">
+  <h1>{{ 'تقرير المركبات — ' if ar else 'Vehicle Report — ' }}{{ report_title }}</h1>
+  <div class="report-meta">
+    <span>{{ 'نوع التقرير: ' if ar else 'Report Type: ' }}
+      <strong>{{ 'حسب الموظف' if report_type == 'user' else 'حسب السيارة' if ar else 'By Employee' if report_type == 'user' else 'By Vehicle' }}</strong>
+    </span>
+    {% if date_from or date_to %}
+    <span>{{ 'الفترة: ' if ar else 'Period: ' }}
+      <strong>{{ date_from or '…' }} → {{ date_to or 'today' }}</strong>
+    </span>
+    {% endif %}
+    <span>{{ 'تاريخ الطباعة: ' if ar else 'Printed: ' }}
+      <strong>{{ now.strftime('%d %b %Y, %I:%M %p') }}</strong>
+    </span>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="report-stats">
+  <div class="stat-item">
+    <span class="stat-val">{{ bookings|length }}</span>
+    <span class="stat-label">{{ 'الإجمالي' if ar else 'Total' }}</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-val">{{ bookings|selectattr('status','equalto','returned')|list|length }}</span>
+    <span class="stat-label">{{ 'مكتملة' if ar else 'Completed' }}</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-val">{{ bookings|selectattr('status','equalto','borrowed')|list|length }}</span>
+    <span class="stat-label">{{ 'خارج حالياً' if ar else 'Currently Out' }}</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-val">{{ bookings|selectattr('status','equalto','pending')|list|length }}</span>
+    <span class="stat-label">{{ 'معلقة' if ar else 'Pending' }}</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-val">{{ bookings|selectattr('return_note')|list|length }}</span>
+    <span class="stat-label">{{ 'مع ملاحظات' if ar else 'With Notes' }}</span>
+  </div>
+</div>
+
+<!-- Table -->
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>{{ 'رقم الحجز' if ar else 'Booking No.' }}</th>
+      {% if report_type == 'car' or selected_id == 'all' %}
+      <th>{{ 'الموظف' if ar else 'Employee' }}</th>
+      <th>{{ 'القسم' if ar else 'Dept.' }}</th>
+      {% endif %}
+      {% if report_type == 'user' or selected_id == 'all' %}
+      <th>{{ 'السيارة' if ar else 'Vehicle' }}</th>
+      {% endif %}
+      <th>{{ 'المدير' if ar else 'Manager' }}</th>
+      <th>{{ 'الوجهة' if ar else 'Destination' }}</th>
+      <th>{{ 'الغرض' if ar else 'Purpose' }}</th>
+      <th>{{ 'المغادرة' if ar else 'Departed' }}</th>
+      <th>{{ 'الإرجاع' if ar else 'Returned' }}</th>
+      <th>{{ 'المدة' if ar else 'Duration' }}</th>
+      <th>{{ 'العداد' if ar else 'Odometer' }}</th>
+      <th>{{ 'الحالة' if ar else 'Status' }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for b in bookings %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td class="td-mono">{{ b.booking_number }}</td>
+      {% if report_type == 'car' or selected_id == 'all' %}
+      <td>{{ b.employee_name }}</td>
+      <td>{{ b.employee_department or '—' }}</td>
+      {% endif %}
+      {% if report_type == 'user' or selected_id == 'all' %}
+      <td class="td-mono">{{ b.car.plate_number }}<br>
+        <span style="font-family:sans-serif;font-size:8pt;color:#555;">
+          {{ b.car.year }} {{ b.car.make }} {{ b.car.model }}
+        </span>
+      </td>
+      {% endif %}
+      <td>{{ b.manager_name or '—' }}</td>
+      <td>{{ b.destination or b.destination_ar or '—' }}</td>
+      <td style="max-width:120px;font-size:8.5pt;color:#444;">
+        {{ (b.purpose or b.purpose_ar or '—')[:60] }}{% if (b.purpose or b.purpose_ar or '')|length > 60 %}…{% endif %}
+      </td>
+      <td style="white-space:nowrap;font-size:8.5pt;">
+        {{ b.actual_departure.strftime('%d %b %Y %I:%M%p') if b.actual_departure else
+           b.planned_departure.strftime('%d %b %Y %I:%M%p') + '*' }}
+      </td>
+      <td style="white-space:nowrap;font-size:8.5pt;">
+        {{ b.actual_return.strftime('%d %b %Y %I:%M%p') if b.actual_return else '—' }}
+      </td>
+      <td style="white-space:nowrap;">
+        {% if b.actual_departure and b.actual_return %}
+          {% set diff = b.actual_return - b.actual_departure %}
+          {% set hours = (diff.total_seconds() // 3600)|int %}
+          {% set mins  = ((diff.total_seconds() % 3600) // 60)|int %}
+          {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
+        {% else %}—{% endif %}
+      </td>
+      <td class="td-mono">
+        {{ (b.odometer_return|int)|string + ' km' if b.odometer_return else '—' }}
+      </td>
+      <td>
+        <span class="status-pill s-{{ b.status }}">
+          {% if b.status == 'pending' %}{{ 'معلق' if ar else 'Pending' }}
+          {% elif b.status == 'borrowed' %}{{ 'مستعار' if ar else 'Borrowed' }}
+          {% elif b.status == 'returned' %}{{ 'مُعاد' if ar else 'Returned' }}
+          {% elif b.status == 'archived' %}{{ 'مؤرشف' if ar else 'Archived' }}
+          {% else %}{{ b.status }}{% endif %}
+        </span>
+      </td>
+    </tr>
+    {% if b.return_note %}
+    <tr>
+      <td colspan="20" class="td-note">
+        ⚠️ {{ 'ملاحظة السائق: ' if ar else 'Driver Note: ' }}{{ b.return_note }}
+      </td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if bookings and bookings|selectattr('actual_departure')|list|length != bookings|length %}
+<p style="font-size:8pt;color:#666;margin-top:6px;">
+  * {{ 'يشير إلى التاريخ المخطط (لم يتم تسجيل المغادرة الفعلية)' if ar else 'Indicates planned date (actual departure not yet recorded)' }}
+</p>
+{% endif %}
+
+<!-- Footer -->
+<div class="report-footer">
+  <span>LeavePass — {{ 'نظام إدارة الموارد البشرية' if ar else 'HR Management System' }}</span>
+  <span>{{ bookings|length }} {{ 'سجل' if ar else 'record(s)' }}</span>
+</div>
+
+</body>
+</html>

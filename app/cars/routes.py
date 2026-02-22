@@ -464,3 +464,56 @@ def admin_reports():
                            date_from=date_from,
                            date_to=date_to,
                            report_title=report_title)
+
+
+@cars_bp.route("/admin/cars/reports/print")
+@login_required
+@admin_required
+def admin_reports_print():
+    from datetime import date, datetime as dt
+    report_type = request.args.get("type", "car")
+    selected_id  = request.args.get("selected_id", "all")
+    date_from    = request.args.get("date_from", "")
+    date_to      = request.args.get("date_to", "")
+
+    cars     = Car.query.order_by(Car.plate_number).all()
+    query    = CarBooking.query
+    report_title = ""
+
+    if report_type == "car":
+        if selected_id and selected_id != "all":
+            query = query.filter_by(car_id=int(selected_id))
+            car = Car.query.get(int(selected_id))
+            report_title = f"{car.year} {car.make} {car.model} — {car.plate_number}" if car else ""
+        else:
+            report_title = "All Vehicles"
+    elif report_type == "user":
+        if selected_id and selected_id != "all":
+            query = query.filter_by(employee_username=selected_id)
+        else:
+            report_title = "All Employees"
+
+    if date_from:
+        try:
+            query = query.filter(CarBooking.planned_departure >= datetime.strptime(date_from, "%Y-%m-%d"))
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            query = query.filter(CarBooking.planned_departure <= datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1))
+        except ValueError:
+            pass
+
+    bookings = query.order_by(CarBooking.planned_departure.desc()).all()
+
+    if report_type == "user" and selected_id != "all" and bookings:
+        report_title = f"{bookings[0].employee_name}"
+
+    return render_template("cars/admin/report_print.html",
+                           bookings=bookings,
+                           report_type=report_type,
+                           selected_id=selected_id,
+                           date_from=date_from,
+                           date_to=date_to,
+                           report_title=report_title,
+                           now=datetime.utcnow())

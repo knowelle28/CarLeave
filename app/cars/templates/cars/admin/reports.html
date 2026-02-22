@@ -9,9 +9,12 @@
     <p class="page-subtitle">{{ 'تقرير مفصل حسب السيارة أو الموظف' if ar else 'Detailed report by vehicle or employee' }}</p>
   </div>
   {% if bookings %}
-  <button class="btn btn-ghost" onclick="window.print()">
+  <a href="{{ url_for('cars.admin_reports_print',
+       type=report_type, selected_id=selected_id,
+       date_from=date_from, date_to=date_to) }}"
+     target="_blank" class="btn btn-ghost">
     🖨 {{ 'طباعة' if ar else 'Print' }}
-  </button>
+  </a>
   {% endif %}
 </div>
 
