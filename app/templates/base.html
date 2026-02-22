@@ -25,7 +25,7 @@
   <div class="nav-inner">
     <a href="{{ url_for('cars.portal') }}" class="nav-brand">
       <span class="nav-brand-icon">⬡</span>
-      <span>Employee Applications Portal</span>
+      <span>{{ 'بوابة طلبات الموظفين' if session.get('lang') == 'ar' else 'Employee Applications Portal' }}</span>
     </a>
     <div class="nav-links">
       <a href="{{ url_for('main.dashboard') }}"
