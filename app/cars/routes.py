@@ -283,9 +283,11 @@ def admin_update_status(id):
 @login_required
 @admin_required
 def admin_fleet():
+    from datetime import date
     cars = Car.query.order_by(Car.created_at.desc()).all()
     car_states = _get_car_states()
-    return render_template("cars/admin/fleet.html", cars=cars, car_states=car_states)
+    return render_template("cars/admin/fleet.html", cars=cars,
+                           car_states=car_states, today=date.today())
 
 
 @cars_bp.route("/admin/cars/fleet/new", methods=["GET", "POST"])
@@ -316,6 +318,7 @@ def admin_add_car():
             current_mileage=float(mileage_val) if mileage_val else 0,
             last_major_maintenance=_parse_date(request.form.get("last_major_maintenance", "")),
             last_minor_maintenance=_parse_date(request.form.get("last_minor_maintenance", "")),
+            registration_expiry=_parse_date(request.form.get("registration_expiry", "")),
         )
         db.session.add(car)
         db.session.commit()
@@ -355,6 +358,7 @@ def admin_edit_car(id):
         car.current_mileage = float(mileage_val) if mileage_val else car.current_mileage
         car.last_major_maintenance = _parse_date(request.form.get("last_major_maintenance", ""))
         car.last_minor_maintenance = _parse_date(request.form.get("last_minor_maintenance", ""))
+        car.registration_expiry = _parse_date(request.form.get("registration_expiry", ""))
         db.session.commit()
         flash(
             f"تم تحديث بيانات السيارة {car.plate_number}." if _ar()

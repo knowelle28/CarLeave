@@ -43,10 +43,32 @@
         {% else %}
         <span class="badge badge-archived">{{ 'غير نشط' if ar else 'Inactive' }}</span>
         {% endif %}
-        <span class="badge badge-draft">
-          {{ car.bookings|selectattr('status','in',['out'])|list|length }}
-          {{ ' خارج' if ar else ' out' }}
-        </span>
+      </div>
+      <div class="fleet-reg-info">
+        {% if car.registration_expiry %}
+          {% set reg_days = (car.registration_expiry - today).days %}
+          {% if reg_days < 0 %}
+          <div class="car-reg-badge reg-expired">
+            🚫 {{ 'انتهى التسجيل: ' if ar else 'Reg. EXPIRED: ' }}
+            <strong>{{ car.registration_expiry.strftime('%d %b %Y') }}</strong>
+          </div>
+          {% elif reg_days <= 30 %}
+          <div class="car-reg-badge reg-expiring">
+            ⚠️ {{ 'ينتهي التسجيل: ' if ar else 'Reg. expires: ' }}
+            <strong>{{ car.registration_expiry.strftime('%d %b %Y') }}</strong>
+            ({{ reg_days }} {{ 'يوم' if ar else 'days' }})
+          </div>
+          {% else %}
+          <div class="car-reg-badge reg-ok">
+            ✅ {{ 'التسجيل ساري: ' if ar else 'Reg. valid: ' }}
+            <strong>{{ car.registration_expiry.strftime('%d %b %Y') }}</strong>
+          </div>
+          {% endif %}
+        {% else %}
+          <div class="car-reg-badge reg-unknown">
+            ❓ {{ 'تاريخ التسجيل غير محدد' if ar else 'Registration expiry not set' }}
+          </div>
+        {% endif %}
       </div>
     </div>
     <div class="fleet-card-actions">

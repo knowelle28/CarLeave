@@ -18,6 +18,7 @@ class Car(db.Model):
     current_mileage = db.Column(db.Float, default=0)
     last_major_maintenance = db.Column(db.Date, nullable=True)
     last_minor_maintenance = db.Column(db.Date, nullable=True)
+    registration_expiry = db.Column(db.Date, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     bookings = db.relationship("CarBooking", backref="car", lazy=True)
@@ -42,6 +43,25 @@ class Car(db.Model):
             car_id=self.id, status="returned"
         ).order_by(CarBooking.actual_return.desc()).first()
         return last.employee_name if last else ""
+
+    def registration_status(self):
+        """Returns: 'expired', 'expiring_soon' (within 30 days), or 'ok'"""
+        if not self.registration_expiry:
+            return 'ok'
+        from datetime import date
+        today = date.today()
+        delta = (self.registration_expiry - today).days
+        if delta < 0:
+            return 'expired'
+        elif delta <= 30:
+            return 'expiring_soon'
+        return 'ok'
+
+    def registration_days_left(self):
+        if not self.registration_expiry:
+            return None
+        from datetime import date
+        return (self.registration_expiry - date.today()).days
 
 
 class CarBooking(db.Model):

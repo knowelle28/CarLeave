@@ -70,6 +70,14 @@
               {% else %}
               <div class="car-status-badge badge-free-pill">✅ {{ 'متاح' if ar else 'Available' }}{% if last_borrower %} · {{ 'آخر مستخدم: ' if ar else 'Last: ' }}{{ last_borrower }}{% endif %}</div>
               {% endif %}
+              {% if car.registration_expiry %}
+                {% set reg_days = (car.registration_expiry - today).days %}
+                {% if reg_days < 0 %}
+                <div class="car-reg-badge reg-expired">🚫 {{ 'انتهى التسجيل: ' if ar else 'Registration EXPIRED: ' }}{{ car.registration_expiry.strftime('%d %b %Y') }}</div>
+                {% elif reg_days <= 30 %}
+                <div class="car-reg-badge reg-expiring">⚠️ {{ 'ينتهي التسجيل: ' if ar else 'Registration expires: ' }}{{ car.registration_expiry.strftime('%d %b %Y') }} ({{ reg_days }} {{ 'يوم' if ar else 'days' }})</div>
+                {% endif %}
+              {% endif %}
             </div>
             {% if not is_blocked %}<div class="car-selector-check">✓</div>
             {% else %}<div class="car-blocked-icon">🔒</div>{% endif %}
