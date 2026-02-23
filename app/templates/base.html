@@ -125,5 +125,80 @@
   {% block content %}{% endblock %}
 </main>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% if session.user %}
+<!-- Session timeout warning modal -->
+<div id="session-timeout-modal" role="dialog" aria-modal="true"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;padding:2rem;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;">
+    <div style="font-size:2.5rem;margin-bottom:0.75rem;">⏱</div>
+    <h3 style="margin:0 0 0.5rem;font-size:1.1rem;font-weight:600;color:#111;">
+      {{ 'انتهت مهلة الجلسة قريباً' if session.get('lang') == 'ar' else 'Session About to Expire' }}
+    </h3>
+    <p style="margin:0 0 1.25rem;color:#555;font-size:0.9rem;">
+      {% if session.get('lang') == 'ar' %}
+        سيتم تسجيل خروجك تلقائياً خلال <strong id="timeout-countdown">120</strong> ثانية بسبب عدم النشاط.
+      {% else %}
+        You will be automatically logged out in <strong id="timeout-countdown">120</strong> seconds due to inactivity.
+      {% endif %}
+    </p>
+    <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;">
+      <button id="timeout-stay-btn"
+              style="padding:0.6rem 1.4rem;background:#1a1a1a;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.9rem;font-weight:500;">
+        {{ 'البقاء متصلاً' if session.get('lang') == 'ar' else 'Stay Logged In' }}
+      </button>
+      <a href="{{ url_for('main.logout') }}"
+         style="padding:0.6rem 1.4rem;background:#f0f0f0;color:#333;border-radius:8px;font-size:0.9rem;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;">
+        {{ 'تسجيل الخروج' if session.get('lang') == 'ar' else 'Log Out Now' }}
+      </a>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var IDLE_TIMEOUT  = 10 * 60 * 1000;   // 10 minutes
+  var WARN_BEFORE   =  2 * 60 * 1000;   // warn 2 minutes before logout
+  var logoutUrl = {{ url_for('main.logout') | tojson }};
+  var pingUrl   = {{ url_for('main.ping')   | tojson }};
+  var modal     = document.getElementById('session-timeout-modal');
+  var countdown = document.getElementById('timeout-countdown');
+  var stayBtn   = document.getElementById('timeout-stay-btn');
+  var warnTimer, logoutTimer, countdownInterval;
+
+  function resetTimers() {
+    clearTimeout(warnTimer);
+    clearTimeout(logoutTimer);
+    clearInterval(countdownInterval);
+    if (modal) modal.style.display = 'none';
+    warnTimer   = setTimeout(showWarning, IDLE_TIMEOUT - WARN_BEFORE);
+    logoutTimer = setTimeout(function () { window.location.href = logoutUrl; }, IDLE_TIMEOUT);
+  }
+
+  function showWarning() {
+    if (!modal) return;
+    modal.style.display = 'flex';
+    var remaining = Math.round(WARN_BEFORE / 1000);
+    if (countdown) countdown.textContent = remaining;
+    countdownInterval = setInterval(function () {
+      remaining -= 1;
+      if (countdown) countdown.textContent = remaining;
+      if (remaining <= 0) clearInterval(countdownInterval);
+    }, 1000);
+  }
+
+  if (stayBtn) {
+    stayBtn.addEventListener('click', function () {
+      fetch(pingUrl, { method: 'POST', credentials: 'same-origin' }).catch(function () {});
+      resetTimers();
+    });
+  }
+
+  ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart', 'click'].forEach(function (evt) {
+    document.addEventListener(evt, resetTimers, { passive: true });
+  });
+
+  resetTimers();
+}());
+</script>
+{% endif %}
 </body>
 </html>

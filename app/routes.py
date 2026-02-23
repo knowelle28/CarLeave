@@ -71,6 +71,12 @@ def logout():
     session.clear()
     return redirect(url_for("main.login"))
 
+@main.route("/ping", methods=["POST"])
+@login_required
+def ping():
+    from flask import jsonify
+    return jsonify({"ok": True})
+
 @main.route("/")
 @login_required
 def dashboard():

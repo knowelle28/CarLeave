@@ -1,4 +1,5 @@
 import os
+import time
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
@@ -30,6 +31,26 @@ def create_app():
     # Register Help Desk blueprint
     from .helpdesk import helpdesk_bp
     app.register_blueprint(helpdesk_bp)
+
+    SESSION_TIMEOUT = 10 * 60  # 10 minutes in seconds
+
+    @app.before_request
+    def check_session_timeout():
+        from flask import session as _s, redirect as _r, url_for as _u, request as _req, flash as _f
+        if _req.endpoint in (None, "static", "main.login", "main.logout", "main.ping"):
+            return
+        if "user" in _s:
+            last = _s.get("last_activity")
+            if last is not None and (time.time() - last) > SESSION_TIMEOUT:
+                _s.clear()
+                _f(
+                    "انتهت جلستك بسبب عدم النشاط. الرجاء تسجيل الدخول مجدداً."
+                    if _s.get("lang") == "ar"
+                    else "Your session expired due to inactivity. Please log in again.",
+                    "error",
+                )
+                return _r(_u("main.login"))
+            _s["last_activity"] = time.time()
 
     @app.context_processor
     def inject_helpdesk_globals():
