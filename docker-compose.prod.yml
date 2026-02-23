@@ -2,7 +2,6 @@ version: "3.9"
 services:
   db:
     image: postgres:15-alpine
-    container_name: leave_db
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -18,7 +17,6 @@ services:
 
   web:
     build: .
-    container_name: leave_web
     environment:
       APP_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
