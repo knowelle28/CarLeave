@@ -1,0 +1,45 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: leave_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: leave_web
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      SECRET_KEY: ${SECRET_KEY}
+      AUTH_MODE: ${AUTH_MODE}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    command: gunicorn -w 4 -b 0.0.0.0:5000 "run:app"
+
+  nginx:
+    image: nginx:alpine
+    container_name: leave_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - web
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
